@@ -7,6 +7,7 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_CLM_CN_class
   use Reaction_Sandbox_UFD_WP_class
   use Reaction_Sandbox_Example_class
+  use Reaction_Sandbox_Ferrihydrite_class
   use Reaction_Sandbox_Simple_class
   use Reaction_Sandbox_Cyber_class
   use Reaction_Sandbox_Gas_class
@@ -175,6 +176,8 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => FlexBioHillCreate()
       case('BIOPARTICLE')
         new_sandbox => BioTH_Create()
+      case('FERRIHYDRITE')
+        new_sandbox => FerrihydriteCreate()
       case default
         call InputKeywordUnrecognized(input,word, &
                                       'CHEMISTRY,REACTION_SANDBOX',option)
