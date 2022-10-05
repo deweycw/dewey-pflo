@@ -199,7 +199,7 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   class(reaction_rt_type) :: reaction
   PetscBool :: compute_derivative
   PetscReal :: Residual(reaction%ncomp) ! [mole / sec]
-  PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
+  !PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
   class(material_auxvar_type) :: material_auxvar
@@ -208,13 +208,12 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   PetscReal :: volume               ! [m^3 bulk volume]
   PetscReal :: porosity             ! m^3 pore space / m^3 bulk
   PetscReal :: liquid_saturation
-  !PetscReal :: molality_to_molarity ! [kg water / L water]
+  PetscReal :: molality_to_molarity ! [kg water / L water]
   PetscReal :: L_water              ! L water
- !PetscReal :: ln_act(reaction%ncomp)
- !PetscReal :: drate_xim
-  PetscReal :: drate, drate_ac
-  PetscReal :: drate_bicarbonate
-  PetscReal :: drate_fe2, drate_h
+  !PetscReal :: drate_xim
+  !PetscReal :: drate, drate_ac
+  !PetscReal :: drate_bicarbonate
+  !PetscReal :: drate_fe2, drate_h
 
   PetscReal :: Ac, Proton, Fe2, Bicarbonate
   PetscReal :: Xim, yield
@@ -247,11 +246,11 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   Rate_Fe2 = 0.d0
   Rate_Bicarbonate = 0.d0
   Rate_Fh_dissoluton = 0.d0
-  drate = 0.d0
-  drate_ac = 0.d0
-  drate_bicarbonate = 0.d0
-  drate_h = 0.d0
-  drate_fe2 = 0.d0
+  !drate = 0.d0
+  !drate_ac = 0.d0
+  !drate_bicarbonate = 0.d0
+  !drate_h = 0.d0
+  !drate_fe2 = 0.d0
   !drate_xim = 0.d0
 
   k = 0.d0
@@ -260,6 +259,8 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   Fd = 0.d0
   reaction_Q = 0.d0
   dGr = 0.d0
+
+  imnrl = this%mineral_id
 
   porosity = material_auxvar%porosity
   liquid_saturation = global_auxvar%sat(iphase)
@@ -288,7 +289,7 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
   dG0 = -586.85d0 ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
-  dG_ATP = -50.d0 ! kJ / mol ATP
+  dG_ATP = 50.d0 ! kJ / mol ATP
 
   reaction_Q = ( Fe2**stoi_fe2 * Bicarbonate**stoi_bicarbonate) / &
     (Ac**stoi_ac * Proton**stoi_proton)
@@ -313,119 +314,117 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   mineral => reaction%mineral
   iauxiliary = this%auxiliary_offset + 1
   volume = material_auxvar%volume        ! den_kg [kg fluid / m^3 fluid]
-  !molality_to_molarity = global_auxvar%den_kg(iphase)*1.d-3  ! kg water/L water
+  molality_to_molarity = global_auxvar%den_kg(iphase)*1.d-3  ! kg water/L water
  
   ! only calculate rate if mineral is present 
   calculate_rate = rt_auxvar%mnrl_volfrac(imnrl) > 0 
+
   if (calculate_rate) then
-    ! mol/sec/m^3 bulk
-    !rate = -rt_auxvar%mnrl_area(imnrl) * &
-          ! sign_ * abs(affinity_factor) * this%rate_constant2
-
-    ! overall rate 
-    Rate = k * Xim * Fd * Ftr * L_water
-
-    ! species-specifc 
-    !Rate_Xim = Rate * yield
-    Rate_Ac = Rate * (-1.d0)*stoi_ac
-    Rate_Proton = Rate * (-1.d0)*stoi_proton
-    Rate_Fe2 = Rate * stoi_fe2
-    Rate_Bicarbonate = Rate * stoi_bicarbonate
-
-    ! ferrihydrite dissolution rate 
-    Rate_Fh_dissoluton = Rate_Fe2 * (-1.d0)
+    ! base rate, mol/sec/m^3 bulk
+    ! units on k: mol/sec/mol-bio
+    Rate = k * Xim * Fd * Ftr 
 
   endif
-  rt_auxvar%auxiliary_data(iauxiliary) = &
-    rt_auxvar%auxiliary_data(iauxiliary) + Rate_Fh_dissoluton
-  ! mol/sec
-  Rate_Fh_dissoluton = Rate_Fh_dissoluton * material_auxvar%volume
-  
-  Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
-  Residual(this%acetate_id) = Residual(this%acetate_id) + Rate_Ac
-  Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
-  Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
-  if (compute_derivative .and. calculate_rate) then
-    ! derivative of rate wrt affinity factor (1-QK)
-    ! mol/sec   ! m^2 mnrl/m^3 bulk          ! mol/m^2 mnrl/sec
-    drate = rt_auxvar%mnrl_area(imnrl) * this%rate_constant1 * &
-                ! m^3 bulk
-                material_auxvar%volume
 
-    drate_h = drate * stoi_proton
-    drate_ac = drate * stoi_ac
-    drate_fe2 = drate * stoi_fe2
-    drate_bicarbonate = drate * stoi_bicarbonate
+  !multiple Rate by 8 for Fe stoichiometry
+  rt_auxvar%auxiliary_data(iauxiliary) = &
+    rt_auxvar%auxiliary_data(iauxiliary) + (Rate * -8.d0)
+
+  Rate = Rate * material_auxvar%volume ! mol/sec
+    
+  ! species-specifc 
+  Rate_Ac = Rate * stoi_ac * molality_to_molarity * L_water * (-1.d0)
+  Rate_Proton = Rate * stoi_proton * molality_to_molarity * L_water * (-1.d0)
+  Rate_Fe2 = Rate * stoi_fe2 * molality_to_molarity * L_water
+  Rate_Bicarbonate = Rate * stoi_bicarbonate * molality_to_molarity * L_water
+  !Rate_Xim = Rate * yield
+  
+  Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
+  Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
+  Residual(this%fe2_id) = Residual(this%fe2_id) - Rate_Fe2
+  Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) - Rate_Bicarbonate
+
+  !if (compute_derivative .and. calculate_rate) then
+  !  ! derivative of rate wrt affinity factor (1-QK)
+  !  ! mol/sec   ! m^2 mnrl/m^3 bulk          ! mol/m^2 mnrl/sec
+  !  drate = rt_auxvar%mnrl_area(imnrl) * this%rate_constant1 * &
+  !              ! m^3 bulk
+  !              material_auxvar%volume!
+
+ !  drate_h = drate * stoi_proton
+  !  drate_ac = drate * stoi_ac
+  !  drate_fe2 = drate * stoi_fe2
+  !  drate_bicarbonate = drate * stoi_bicarbonate
     !drate_xim = drate * yield
 
     ! derivative wrt H+
-    jcomp = this%h_ion_id
+  !  jcomp = this%h_ion_id
                                     ! subtract due to H+ stoichiometry
-    Jacobian(this%h_ion_id,jcomp) = &
-      Jacobian(this%h_ion_id,jcomp) - drate_h
+  !  Jacobian(this%h_ion_id,jcomp) = &
+  !    Jacobian(this%h_ion_id,jcomp) - drate_h
                                     ! subtract due to Ac- stoichiometry
-    Jacobian(this%acetate_id,jcomp) = &
-      Jacobian(this%acetate_id,jcomp) - drate_ac
+  !  Jacobian(this%acetate_id,jcomp) = &
+   !   Jacobian(this%acetate_id,jcomp) - drate_ac
                                     ! add due to HCO3- stoichiometry
-    Jacobian(this%bicarbonate_id,jcomp) = &
-      Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
+    !Jacobian(this%bicarbonate_id,jcomp) = &
+    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
                                     ! add due to Fe2+ stoichiometry
-    Jacobian(this%fe2_id,jcomp) = &
-      Jacobian(this%fe2_id,jcomp) + drate_fe2
+   ! Jacobian(this%fe2_id,jcomp) = &
+   !   Jacobian(this%fe2_id,jcomp) + drate_fe2
                                     ! add due to Xim stoichiometry
     !Jacobian(this%xim_id,jcomp) = &
     !  Jacobian(this%xim_id,jcomp) + drate_xim
 
     ! derivative wrt Ac-
-    jcomp = this%acetate_id
+    !jcomp = this%acetate_id
                                     ! subtract due to H+ stoichiometry
-    Jacobian(this%h_ion_id,jcomp) = &
-      Jacobian(this%h_ion_id,jcomp) - drate_h
+    !Jacobian(this%h_ion_id,jcomp) = &
+    !  Jacobian(this%h_ion_id,jcomp) - drate_h
                                     ! subtract due to Ac- stoichiometry
-    Jacobian(this%acetate_id,jcomp) = &
-      Jacobian(this%acetate_id,jcomp) - drate_ac
+    !!Jacobian(this%acetate_id,jcomp) = &
+    !  Jacobian(this%acetate_id,jcomp) - drate_ac
                                     ! add due to HCO3- stoichiometry
-    Jacobian(this%bicarbonate_id,jcomp) = &
-      Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
+    !Jacobian(this%bicarbonate_id,jcomp) = &
+    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
                                     ! add due to Fe2+ stoichiometry
-    Jacobian(this%fe2_id,jcomp) = &
-      Jacobian(this%fe2_id,jcomp) + drate_fe2
+    !Jacobian(this%fe2_id,jcomp) = &
+    !  Jacobian(this%fe2_id,jcomp) + drate_fe2
                                     ! add due to Xim stoichiometry
     !Jacobian(this%xim_id,jcomp) = &
     !  Jacobian(this%xim_id,jcomp) + drate_xim
 
     ! derivative wrt HCO3-
-    jcomp = this%bicarbonate_id
+    !jcomp = this%bicarbonate_id
                                     ! subtract due to H+ stoichiometry
-    Jacobian(this%h_ion_id,jcomp) = &
-      Jacobian(this%h_ion_id,jcomp) - drate_h
+    !!Jacobian(this%h_ion_id,jcomp) = &
+    !  Jacobian(this%h_ion_id,jcomp) - drate_h
                                     ! subtract due to Ac- stoichiometry
-    Jacobian(this%acetate_id,jcomp) = &
-      Jacobian(this%acetate_id,jcomp) - drate_ac
+    !Jacobian(this%acetate_id,jcomp) = &
+    !  Jacobian(this%acetate_id,jcomp) - drate_ac
                                     ! add due to HCO3- stoichiometry
-    Jacobian(this%bicarbonate_id,jcomp) = &
-      Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
+    !Jacobian(this%bicarbonate_id,jcomp) = &
+    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
                                     ! add due to Fe2+ stoichiometry
-    Jacobian(this%fe2_id,jcomp) = &
-      Jacobian(this%fe2_id,jcomp) + drate_fe2
+    !Jacobian(this%fe2_id,jcomp) = &
+    !  Jacobian(this%fe2_id,jcomp) + drate_fe2
                                     ! add due to Xim stoichiometry
     !Jacobian(this%xim_id,jcomp) = &
     !  Jacobian(this%xim_id,jcomp) + drate_xim
 
     ! derivative wrt Fe2+
-    jcomp = this%fe2_id
+    !jcomp = this%fe2_id
                                     ! subtract due to H+ stoichiometry
-    Jacobian(this%h_ion_id,jcomp) = &
-      Jacobian(this%h_ion_id,jcomp) - drate_h
+    !Jacobian(this%h_ion_id,jcomp) = &
+    !  Jacobian(this%h_ion_id,jcomp) - drate_h
                                     ! subtract due to Ac- stoichiometry
-    Jacobian(this%acetate_id,jcomp) = &
-      Jacobian(this%acetate_id,jcomp) - drate_ac
+    !Jacobian(this%acetate_id,jcomp) = &
+    !  Jacobian(this%acetate_id,jcomp) - drate_ac
                                     ! add due to HCO3- stoichiometry
-    Jacobian(this%bicarbonate_id,jcomp) = &
-      Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
+    !Jacobian(this%bicarbonate_id,jcomp) = &
+    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
                                     ! add due to Fe2+ stoichiometry
-    Jacobian(this%fe2_id,jcomp) = &
-      Jacobian(this%fe2_id,jcomp) + drate_fe2
+    !!Jacobian(this%fe2_id,jcomp) = &
+    !  Jacobian(this%fe2_id,jcomp) + drate_fe2
                                     ! add due to Xim stoichiometry
     !Jacobian(this%xim_id,jcomp) = &
     !  Jacobian(this%xim_id,jcomp) + drate_xim
