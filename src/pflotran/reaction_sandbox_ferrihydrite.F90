@@ -13,13 +13,17 @@ module Reaction_Sandbox_Ferrihydrite_class
     PetscInt :: fe2_id
     PetscInt :: acetate_id
     PetscInt :: bicarbonate_id
+    PetscInt :: o2aq_id
     PetscInt :: mineral_id
     PetscInt :: xim_id
     PetscReal :: rate_constant1
+    PetscReal :: rate_constant2
     PetscReal :: Kd
     PetscReal :: Y
     PetscReal :: m
     PetscReal :: chi
+    PetscReal :: o2_threshold
+    PetscInt :: test
   contains
     procedure, public :: ReadInput => FerrihydriteReadInput
     procedure, public :: Setup => FerrihydriteSetup
@@ -44,14 +48,18 @@ function FerrihydriteCreate()
   FerrihydriteCreate%fe2_id = UNINITIALIZED_INTEGER
   FerrihydriteCreate%acetate_id = UNINITIALIZED_INTEGER
   FerrihydriteCreate%bicarbonate_id = UNINITIALIZED_INTEGER
+  FerrihydriteCreate%o2aq_id = UNINITIALIZED_INTEGER
   FerrihydriteCreate%mineral_id = UNINITIALIZED_INTEGER
   FerrihydriteCreate%xim_id = UNINITIALIZED_INTEGER
 
   FerrihydriteCreate%rate_constant1 = UNINITIALIZED_DOUBLE
+  FerrihydriteCreate%rate_constant2 = UNINITIALIZED_DOUBLE
   FerrihydriteCreate%Kd = UNINITIALIZED_DOUBLE
   FerrihydriteCreate%Y = UNINITIALIZED_DOUBLE
   FerrihydriteCreate%m = UNINITIALIZED_DOUBLE
   FerrihydriteCreate%chi = UNINITIALIZED_DOUBLE
+  FerrihydriteCreate%o2_threshold = UNINITIALIZED_DOUBLE
+  FerrihydriteCreate%test = UNINITIALIZED_INTEGER
 
   nullify(FerrihydriteCreate%next)
 end function FerrihydriteCreate
@@ -79,7 +87,7 @@ subroutine FerrihydriteReadInput(this,input,option)
     call InputErrorMsg(input,option,'keyword',error_string)
     call StringToUpper(word)
     select case(word)
-      case('RATE_CONSTANT')
+      case('K_DISSOLUTION')
         call InputReadDouble(input,option,this%rate_constant1)
         call InputErrorMsg(input,option,word,error_string)
       case('KD')
@@ -94,17 +102,28 @@ subroutine FerrihydriteReadInput(this,input,option)
       case('CHI')
         call InputReadDouble(input,option,this%chi)
         call InputErrorMsg(input,option,word,error_string)
+      case('O2_THRESHOLD')
+        call InputReadDouble(input,option,this%o2_threshold)
+        call InputErrorMsg(input,option,word,error_string)
+      case('K_PRECIPITATION')
+        call InputReadDouble(input,option,this%rate_constant2)
+        call InputErrorMsg(input,option,word,error_string)
+      case('TEST')
+        call InputReadInt(input,option,this%test)
+        call InputErrorMsg(input,option,word,error_string)
       case default
         call InputKeywordUnrecognized(input,word,error_string,option)
     end select
   enddo
   call InputPopBlock(input,option)
   if (Uninitialized(this%rate_constant1) .or. &
+      Uninitialized(this%rate_constant2) .or. &
       Uninitialized(this%Kd) .or. &
       Uninitialized(this%Y) .or. &
       Uninitialized(this%m) .or. &
+      Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'RATE_CONSTANT, KD, Y, M, and CHI must be set for &
+    option%io_buffer = 'K_DISSOLUTION, K_PRECIPITATION, KD, Y, M, CHI, and O2_THRESHOLD must be set for &
       REACTION_SANDBOX_FERRIHYDRITE.'
     call PrintErrMsg(option)
   endif
@@ -116,6 +135,7 @@ subroutine FerrihydriteSetup(this,reaction,option)
   !
   use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
   use Reaction_Mineral_Aux_module, only : GetMineralIDFromName
+  use Reaction_Immobile_Aux_module, only: GetImmobileSpeciesIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_ferrihydrite_type) :: this
@@ -139,9 +159,15 @@ subroutine FerrihydriteSetup(this,reaction,option)
   word = 'HCO3-'
   this%bicarbonate_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
+  word = 'O2(aq)'
+  this%o2aq_id = &
+    GetPrimarySpeciesIDFromName(word,reaction,option)
   word = 'Ferrihydrite'
   this%mineral_id = &
     GetMineralIDFromName(word,reaction%mineral,option)
+  word = 'Xim'
+  this%xim_id = &
+    GetImmobileSpeciesIDFromName(word,reaction%immobile,option)
 
 end subroutine FerrihydriteSetup
 ! ************************************************************************** !
@@ -165,18 +191,12 @@ subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
   
-  !word = 'Thermodynamic Factor (FT)'
-  !units = 'mol/m^3-sec'
-  !call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
-   !                             REACTION_AUXILIARY, &
-    !                            this%auxiliary_offset+1)
-  
 end subroutine FerrihydriteAuxiliaryPlotVariables
 ! ************************************************************************** !
-subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
+subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
                            rt_auxvar,global_auxvar,material_auxvar, &
                            reaction,option)
-  !
+  !Jacobian,compute_derivative,
   ! Evaluates ferrihydrite reaction storing residual but no Jacobian
   !
   ! 
@@ -199,7 +219,7 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   class(reaction_rt_type) :: reaction
   PetscBool :: compute_derivative
   PetscReal :: Residual(reaction%ncomp) ! [mole / sec]
-  !PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
+  PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
   class(material_auxvar_type) :: material_auxvar
@@ -209,6 +229,8 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   PetscReal :: porosity             ! m^3 pore space / m^3 bulk
   PetscReal :: liquid_saturation
   PetscReal :: molality_to_molarity ! [kg water / L water]
+  PetscReal :: ln_conc(reaction%ncomp)
+  PetscReal :: ln_act(reaction%ncomp)
   PetscReal :: L_water              ! L water
   !PetscReal :: drate_xim
   !PetscReal :: drate, drate_ac
@@ -216,56 +238,46 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   !PetscReal :: drate_fe2, drate_h
 
   PetscReal :: Ac, Proton, Fe2, Bicarbonate
-  PetscReal :: Xim, yield
-  PetscReal :: Rate, Rate_Ac, Rate_Proton !Rate_Xim,
-  PetscReal :: Rate_Fe2, Rate_Bicarbonate
-  PetscReal :: Rate_Fh_dissoluton
+  PetscReal :: Xim, yield, O2aq
+  PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_fh
+  PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
   PetscReal :: stoi_ac, stoi_proton
   PetscReal :: stoi_fe2, stoi_bicarbonate
-  PetscReal :: k, m, chi
+  PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fd
   PetscReal :: reaction_Q
   PetscReal :: dG0, dGr, dG_ATP
 
-  PetscInt :: jcomp
+  PetscReal :: lnQK, sign_, affinity_factor, QK
+
+  PetscInt :: jcomp, icomp
+  PetscInt :: ncomp, i 
   PetscInt :: imnrl
   PetscInt :: iauxiliary
-  PetscBool :: calculate_rate
+  PetscBool :: calculate_dissolution
+  PetscBool :: calculate_precip
+  mineral => reaction%mineral
 
-  Ac = 0.d0
-  Proton = 0.d0
-  Fe2 = 0.d0
-  Bicarbonate = 0.d0
-  Xim = 0.d0
-  yield = 0.d0
-  Rate = 0.d0
-  !Rate_Xim = 0.d0
-  Rate_Ac = 0.d0
-  Rate_Proton = 0.d0
-  Rate_Fe2 = 0.d0
-  Rate_Bicarbonate = 0.d0
-  Rate_Fh_dissoluton = 0.d0
-  !drate = 0.d0
-  !drate_ac = 0.d0
-  !drate_bicarbonate = 0.d0
-  !drate_h = 0.d0
-  !drate_fe2 = 0.d0
-  !drate_xim = 0.d0
+  iauxiliary = this%auxiliary_offset + 1
 
-  k = 0.d0
-  Ft = 0.d0
-  Ftr = 0.d0
-  Fd = 0.d0
-  reaction_Q = 0.d0
-  dGr = 0.d0
+  volume = material_auxvar%volume        ! den_kg [kg fluid / m^3 fluid]
+  molality_to_molarity = global_auxvar%den_kg(iphase)*1.d-3  ! kg water/L water
+
+  ln_conc = log(rt_auxvar%pri_molal)
+  ln_act = ln_conc+log(rt_auxvar%pri_act_coef)
 
   imnrl = this%mineral_id
+
+
 
   porosity = material_auxvar%porosity
   liquid_saturation = global_auxvar%sat(iphase)
   volume = material_auxvar%volume
   L_water = porosity*liquid_saturation*volume*1.d3
+
+  k_diss = this%rate_constant1
+  k_precip = this%rate_constant2
 
   Ac = rt_auxvar%pri_molal(this%acetate_id) * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
@@ -275,6 +287,8 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
     rt_auxvar%pri_act_coef(this%fe2_id) 
   Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * &
     rt_auxvar%pri_act_coef(this%bicarbonate_id) 
+  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * &
+    rt_auxvar%pri_act_coef(this%o2aq_id) 
 
   Xim = rt_auxvar%immobile(this%xim_id)
 
@@ -285,14 +299,14 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   stoi_bicarbonate = 2.d0
   
   stoi_ac = 1.d0
-  stoi_proton = 15.d0
+  stoi_proton = 15.d0 !+ 2.d0  ! +2.d0 to account for H+ consumed in database formulation 
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
-  dG0 = -586.85d0 ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
+  dG0 = (-586.85d0) ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
   dG_ATP = 50.d0 ! kJ / mol ATP
 
-  reaction_Q = ( Fe2**stoi_fe2 * Bicarbonate**stoi_bicarbonate) / &
-    (Ac**stoi_ac * Proton**stoi_proton)
+  reaction_Q = ( (Fe2**stoi_fe2) * (Bicarbonate**stoi_bicarbonate)) / &
+    ((Ac**stoi_ac) * (Proton**stoi_proton))
 
   dGr = dG0 + RT*log(reaction_Q)
   
@@ -300,50 +314,127 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
   Fd = Ac / (Ac + this%Kd)
 
   ! Thermodynamic factor 
-  Ft = 1.d0 - exp((dGr + m*dG_ATP) / &
-    (chi * RT))
+  Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
 
   if (Ft < 0) then 
     Ftr = 0.d0
   else
     Ftr = Ft
   endif
+  
+  ! only calculate diss rate if mineral is present and O2(aq) below threhsold
+  calculate_dissolution = (rt_auxvar%mnrl_volfrac(imnrl) > 0 .and. &
+    O2aq < (this%o2_threshold))
+  !calculate_dissolution = O2aq < (this%o2_threshold)  !rt_auxvar%mnrl_volfrac(imnrl) > 0 .or. sign_ < 0.d0
 
-  k = this%rate_constant1
-
-  mineral => reaction%mineral
-  iauxiliary = this%auxiliary_offset + 1
-  volume = material_auxvar%volume        ! den_kg [kg fluid / m^3 fluid]
-  molality_to_molarity = global_auxvar%den_kg(iphase)*1.d-3  ! kg water/L water
- 
-  ! only calculate rate if mineral is present 
-  calculate_rate = rt_auxvar%mnrl_volfrac(imnrl) > 0 
-
-  if (calculate_rate) then
-    ! base rate, mol/sec/m^3 bulk
-    ! units on k: mol/sec/mol-bio
-    Rate = k * Xim * Fd * Ftr 
-
+  if (dabs(rt_auxvar%mnrl_rate(imnrl)) > 1.d-40) then
+    option%io_buffer = 'For REACTION_SANDBOX_FERRIHYDRITE to function correctly, &
+      &the RATE_CONSTANT in the default MINERAL_KINETICS block must be set &
+      &to zero.'
+    call PrintErrMsg(option)
   endif
 
-  !multiple Rate by 8 for Fe stoichiometry
-  rt_auxvar%auxiliary_data(iauxiliary) = &
-    rt_auxvar%auxiliary_data(iauxiliary) + (Rate * -8.d0)
+  ! for precipitation 
+  !lnQK = -4.896*LOG_TO_LN - (2.d0 * ln_act(this%h_ion_id)) + &
+  !  (ln_act(this%fe2_id)) !+ (0.0625d0 * ln_act(this%o2aq_id)) 
+  !affinity_factor = 1.d0 - exp(lnQK)
+  !sign_ = sign(1.d0,affinity_factor)
 
-  Rate = Rate * material_auxvar%volume ! mol/sec
-    
-  ! species-specifc 
-  Rate_Ac = Rate * stoi_ac * molality_to_molarity * L_water * (-1.d0)
-  Rate_Proton = Rate * stoi_proton * molality_to_molarity * L_water * (-1.d0)
-  Rate_Fe2 = Rate * stoi_fe2 * molality_to_molarity * L_water
-  Rate_Bicarbonate = Rate * stoi_bicarbonate * molality_to_molarity * L_water
-  !Rate_Xim = Rate * yield
+  lnQK = -mineral%kinmnrl_logK(imnrl)*LOG_TO_LN
+
+  if (mineral%kinmnrlh2oid(imnrl) > 0) then
+    lnQK = lnQK + mineral%kinmnrlh2ostoich(imnrl)* &
+                  rt_auxvar%ln_act_h2o
+  endif
+  ! activity of other species
+  ncomp = mineral%kinmnrlspecid(0,imnrl)
+  do i = 1, ncomp
+    icomp = mineral%kinmnrlspecid(i,imnrl)
+    lnQK = lnQK + mineral%kinmnrlstoich(i,imnrl)*ln_act(icomp)
+  enddo
+
+  QK = exp(lnQK)
+  affinity_factor = 1.d0-QK
+  sign_ = sign(1.d0,affinity_factor)
+
+
+  calculate_precip = (sign_<0)
+
+
+
+  Rate = 0.d0
   
-  Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
-  Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
-  Residual(this%fe2_id) = Residual(this%fe2_id) - Rate_Fe2
-  Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) - Rate_Bicarbonate
+  if (calculate_dissolution) then
+    ! base rate, mol/sec/m^3 bulk
+    ! units on k: mol/sec/mol-bio
+    
 
+    if (this%test == 1) then
+      Rate = -k_diss * Ftr 
+    endif
+
+    if (this%test == 2) then
+      Rate = -k_diss *  Fd 
+    endif
+
+    if (this%test == 3) then
+      Rate = -k_diss * Xim  
+    endif
+
+    if (this%test == 4) then
+      Rate = -k_diss   
+    endif
+
+    if (this%test == 5) then
+      Rate = -k_diss *  Fd * Ftr   
+    endif
+
+    if (this%test == 6) then
+      Rate = -k_diss *  Fd * Ftr * Xim  
+    endif
+    !Rate = -k_diss
+  
+    Rate_fh = Rate
+    
+    rt_auxvar%auxiliary_data(iauxiliary) = Rate_fh
+
+    Rate = Rate * material_auxvar%volume ! mol/sec
+      
+    ! species-specifc 
+    Rate_Ac = Rate * stoi_ac  
+    Rate_Proton = Rate * stoi_proton 
+    Rate_Fe2 = Rate * stoi_fe2 
+    Rate_Bicarbonate = Rate * stoi_bicarbonate 
+    !Rate_Xim = Rate * yield
+    
+    Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
+    Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
+    Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
+    Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
+
+  else
+
+    if (calculate_precip) then
+      
+      Rate = (-1.d0) * sign_ * abs(affinity_factor) * this%rate_constant2
+
+      !multiple Rate by 8 for Fe stoichiometry?
+      rt_auxvar%auxiliary_data(iauxiliary) = Rate
+
+      Rate = Rate * material_auxvar%volume ! mol/sec
+        
+      ! species-specifc 
+      Rate_O2aq = Rate * (0.0625d0) 
+      Rate_Fe2 = Rate 
+      Rate_Proton = Rate * (2.d0) 
+      !Rate_Xim = Rate * yield
+      
+      Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
+      Residual(this%o2aq_id) = Residual(this%o2aq_id) + Rate_O2aq
+      Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
+    endif
+
+  endif
   !if (compute_derivative .and. calculate_rate) then
   !  ! derivative of rate wrt affinity factor (1-QK)
   !  ! mol/sec   ! m^2 mnrl/m^3 bulk          ! mol/m^2 mnrl/sec
@@ -447,7 +538,7 @@ subroutine FerrihydriteEvaluate(this,Residual,Jacobian,compute_derivative, &
     !Jacobian(this%xim_id,jcomp) = &
     !  Jacobian(this%xim_id,jcomp) + drate_xim
 
-  endif
+  !endif
 end subroutine FerrihydriteEvaluate
 ! ************************************************************************** !
 subroutine FerrihydriteUpdateKineticState(this,rt_auxvar,global_auxvar, &
