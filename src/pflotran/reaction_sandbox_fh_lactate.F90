@@ -1,4 +1,4 @@
-module Reaction_Sandbox_Ferrihydrite_class
+module Reaction_Sandbox_Fh_Lactate_class
 #include "petsc/finclude/petscsys.h"
   use petscsys
   use Reaction_Sandbox_Base_class
@@ -9,11 +9,12 @@ module Reaction_Sandbox_Ferrihydrite_class
   private
   type, public, &
     extends(reaction_sandbox_base_type) :: &
-      reaction_sandbox_ferrihydrite_type
+      reaction_sandbox_fh_lactate_type
     PetscInt :: auxiliary_offset
     PetscInt :: h_ion_id
     PetscInt :: fe2_id
     PetscInt :: acetate_id
+    PetscInt :: lactate_id
     PetscInt :: bicarbonate_id
     PetscInt :: o2aq_id
     PetscInt :: mineral_id
@@ -21,6 +22,7 @@ module Reaction_Sandbox_Ferrihydrite_class
     PetscReal :: rate_constant1
     PetscReal :: rate_constant2
     PetscReal :: Ka
+    PetscReal :: Kl
     PetscReal :: Y
     PetscReal :: m
     PetscReal :: chi
@@ -28,46 +30,48 @@ module Reaction_Sandbox_Ferrihydrite_class
     PetscInt :: test
 
   contains
-    procedure, public :: ReadInput => FerrihydriteReadInput
-    procedure, public :: Setup => FerrihydriteSetup
-    procedure, public :: AuxiliaryPlotVariables => FerrihydriteAuxiliaryPlotVariables
-    procedure, public :: Evaluate => FerrihydriteEvaluate
-    procedure, public :: UpdateKineticState => FerrihydriteUpdateKineticState
-  end type reaction_sandbox_ferrihydrite_type
+    procedure, public :: ReadInput => FhLactateReadInput
+    procedure, public :: Setup => FhLactateSetup
+    procedure, public :: AuxiliaryPlotVariables => FhLactateAuxiliaryPlotVariables
+    procedure, public :: Evaluate => FhLactateEvaluate
+    procedure, public :: UpdateKineticState => FhLactateUpdateKineticState
+  end type reaction_sandbox_fh_lactate_type
 
-  public :: FerrihydriteCreate, &
-            FerrihydriteSetup
+  public :: FhLactateCreate, &
+            FhLactateSetup
 contains
 ! ************************************************************************** !
-function FerrihydriteCreate()
+function FhLactateCreate()
   !
-  ! Allocates Ferrihydrite reaction object.
+  ! Allocates FhLactate reaction object.
   !
   implicit none
-  class(reaction_sandbox_ferrihydrite_type), pointer :: FerrihydriteCreate
-  allocate(FerrihydriteCreate)
-  FerrihydriteCreate%auxiliary_offset = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%h_ion_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%fe2_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%acetate_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%bicarbonate_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%o2aq_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%mineral_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%xim_id = UNINITIALIZED_INTEGER
+  class(reaction_sandbox_fh_lactate_type), pointer :: FhLactateCreate
+  allocate(FhLactateCreate)
+  FhLactateCreate%auxiliary_offset = UNINITIALIZED_INTEGER
+  FhLactateCreate%h_ion_id = UNINITIALIZED_INTEGER
+  FhLactateCreate%fe2_id = UNINITIALIZED_INTEGER
+  FhLactateCreate%acetate_id = UNINITIALIZED_INTEGER
+  FhLactateCreate%lactate_id = UNINITIALIZED_INTEGER
+  FhLactateCreate%bicarbonate_id = UNINITIALIZED_INTEGER
+  FhLactateCreate%o2aq_id = UNINITIALIZED_INTEGER
+  FhLactateCreate%mineral_id = UNINITIALIZED_INTEGER
+  FhLactateCreate%xim_id = UNINITIALIZED_INTEGER
 
-  FerrihydriteCreate%rate_constant1 = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%rate_constant2 = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%Ka = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%Y = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%m = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%chi = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%o2_threshold = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%test = UNINITIALIZED_INTEGER
+  FhLactateCreate%rate_constant1 = UNINITIALIZED_DOUBLE
+  FhLactateCreate%rate_constant2 = UNINITIALIZED_DOUBLE
+  FhLactateCreate%Ka = UNINITIALIZED_DOUBLE
+  FhLactateCreate%Kl = UNINITIALIZED_DOUBLE
+  FhLactateCreate%Y = UNINITIALIZED_DOUBLE
+  FhLactateCreate%m = UNINITIALIZED_DOUBLE
+  FhLactateCreate%chi = UNINITIALIZED_DOUBLE
+  FhLactateCreate%o2_threshold = UNINITIALIZED_DOUBLE
+  FhLactateCreate%test = UNINITIALIZED_INTEGER
 
-  nullify(FerrihydriteCreate%next)
-end function FerrihydriteCreate
+  nullify(FhLactateCreate%next)
+end function FhLactateCreate
 ! ************************************************************************** !
-subroutine FerrihydriteReadInput(this,input,option)
+subroutine FhLactateReadInput(this,input,option)
   !
   ! Reads calcite reaction parameters
   !
@@ -75,12 +79,12 @@ subroutine FerrihydriteReadInput(this,input,option)
   use Input_Aux_module
   use String_module
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_fh_lactate_type) :: this
   type(input_type), pointer :: input
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXSTRINGLENGTH) :: error_string
-  error_string = 'CHEMISTRY,REACTION_SANDBOX,FERRIHYDRITE'
+  error_string = 'CHEMISTRY,REACTION_SANDBOX,FHLACTATE'
   call InputPushBlock(input,option)
   do
     call InputReadPflotranString(input,option)
@@ -95,6 +99,9 @@ subroutine FerrihydriteReadInput(this,input,option)
         call InputErrorMsg(input,option,word,error_string)
       case('KA')
         call InputReadDouble(input,option,this%Ka)
+        call InputErrorMsg(input,option,word,error_string)
+      case('KL')
+        call InputReadDouble(input,option,this%Kl)
         call InputErrorMsg(input,option,word,error_string)
       case('Y')
         call InputReadDouble(input,option,this%Y)
@@ -122,17 +129,18 @@ subroutine FerrihydriteReadInput(this,input,option)
   if (Uninitialized(this%rate_constant1) .or. &
       Uninitialized(this%rate_constant2) .or. &
       Uninitialized(this%Ka) .or. &
+      Uninitialized(this%Kl) .or. &
       Uninitialized(this%Y) .or. &
       Uninitialized(this%m) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'K_DISSOLUTION, K_PRECIPITATION, KA, Y, M, CHI, and O2_THRESHOLD must be set for &
-      REACTION_SANDBOX_FERRIHYDRITE.'
+    option%io_buffer = 'K_DISSOLUTION, K_PRECIPITATION, KA, KL, Y, M, CHI, and O2_THRESHOLD must be set for &
+      REACTION_SANDBOX_FH_LACTATE.'
     call PrintErrMsg(option)
   endif
-end subroutine FerrihydriteReadInput
+end subroutine FhLactateReadInput
 ! ************************************************************************** !
-subroutine FerrihydriteSetup(this,reaction,option)
+subroutine FhLactateSetup(this,reaction,option)
   !
   ! Sets up the calcite reaction with hardwired parameters
   !
@@ -141,7 +149,7 @@ subroutine FerrihydriteSetup(this,reaction,option)
   use Reaction_Immobile_Aux_module, only: GetImmobileSpeciesIDFromName
   use Option_module
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_fh_lactate_type) :: this
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
@@ -159,6 +167,9 @@ subroutine FerrihydriteSetup(this,reaction,option)
   word = 'Ac-'
   this%acetate_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
+  word = 'Lactate-'
+    this%lactate_id = &
+      GetPrimarySpeciesIDFromName(word,reaction,option)
   word = 'HCO3-'
   this%bicarbonate_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
@@ -172,9 +183,9 @@ subroutine FerrihydriteSetup(this,reaction,option)
   this%xim_id = &
     GetImmobileSpeciesIDFromName(word,reaction%immobile,option)
 
-end subroutine FerrihydriteSetup
+end subroutine FhLactateSetup
 ! ************************************************************************** !
-subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
+subroutine FhLactateAuxiliaryPlotVariables(this,list,reaction,option)
   !
   ! Adds ferrihydrite auxiliary plot variables to output list
   !
@@ -182,21 +193,21 @@ subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
   use Reaction_Aux_module
   use Output_Aux_module
   use Variables_module, only : REACTION_AUXILIARY
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_fh_lactate_type) :: this
   type(output_variable_list_type), pointer :: list
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'Fh Acetate Sandbox Rate'
+  word = 'Fh Lactate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
   
-end subroutine FerrihydriteAuxiliaryPlotVariables
+end subroutine FhLactateAuxiliaryPlotVariables
 ! ************************************************************************** !
-subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
+subroutine FhLactateEvaluate(this, Residual,Jacobian,compute_derivative, &
                            rt_auxvar,global_auxvar,material_auxvar, &
                            reaction,option)
   !Jacobian,compute_derivative,
@@ -215,7 +226,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   use Material_Aux_class
   use Reaction_Mineral_Aux_module
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_fh_lactate_type) :: this
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   PetscBool :: compute_derivative
@@ -234,19 +245,16 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: ln_act(reaction%ncomp)
   PetscReal :: L_water              ! L water
   !PetscReal :: drate_xim
-  !PetscReal :: drate, drate_ac
-  !PetscReal :: drate_bicarbonate
-  !PetscReal :: drate_fe2, drate_h
 
-  PetscReal :: Ac, Proton, Fe2, Bicarbonate
+  PetscReal :: Ac, Proton, Fe2, Bicarbonate, Lac
   PetscReal :: Xim, yield, O2aq
-  PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_fh
+  PetscReal :: Rate, Rate_Ac, Rate_Lac, Rate_Proton, Rate_fh
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
-  PetscReal :: stoi_ac, stoi_proton
+  PetscReal :: stoi_ac, stoi_proton, stoi_lac
   PetscReal :: stoi_fe2, stoi_bicarbonate
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
-  PetscReal :: Ft, Ftr, Fa
+  PetscReal :: Ft, Ftr, Fa, Fl
   PetscReal :: reaction_Q
   PetscReal :: dG0, dGr, dG_ATP
 
@@ -271,7 +279,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   imnrl = this%mineral_id
 
   if (dabs(rt_auxvar%mnrl_rate(imnrl)) > 1.d-40) then
-    option%io_buffer = 'For REACTION_SANDBOX_FERRIHYDRITE to function correctly, &
+    option%io_buffer = 'For REACTION_SANDBOX_FH_LACTATE to function correctly, &
       &the RATE_CONSTANT in the default MINERAL_KINETICS block must be set &
       &to zero.'
     call PrintErrMsg(option)
@@ -286,9 +294,13 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   k_precip = this%rate_constant2
 
 
-  ! Rxn:    1.00 Ac- + 8.00 FHY + 15.00 H+ = 8.00 Fe++ + 2.00 HCO3- + 20.00 H2O 
-  ! dG0 =   -612.0 kJ per mol Ac- 
 
+
+    ! Rxn:    1.00 Lactate- + 4.00 FHY + 7.00 H+ = 4.00 Fe++ + 1.00 HCO3- + 1.00 Ac- + 10.00 H2O 
+    ! dG0 =   -347.3 kJ per mol Lactate-  
+
+  Lac = rt_auxvar%pri_molal(this%lactate_id) * &
+    rt_auxvar%pri_act_coef(this%lactate_id) 
   Ac = rt_auxvar%pri_molal(this%acetate_id) * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
   Proton = rt_auxvar%pri_molal(this%h_ion_id) * &
@@ -305,33 +317,36 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   m = this%m
   chi = this%chi
 
-  stoi_fe2 = 8.d0
-  stoi_bicarbonate = 2.d0
-  
+  stoi_fe2 = 4.d0
+  stoi_bicarbonate = 1.d0
+  stoi_lac = 1.d0
   stoi_ac = 1.d0
-  stoi_proton = 15.d0 !+ 2.d0  ! +2.d0 to account for H+ consumed in database formulation 
+  stoi_proton = 7.d0 
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
-  dG0 = (-612.0d0) ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
+  dG0 = (-347.3d0) ! kJ / mol lactate; dG0 for FeIII in ferrihydrite as electron acceptor; Kocar & Fendorf 2009
   dG_ATP = 50.d0 ! kJ / mol ATP
 
-  reaction_Q = ( (Fe2**stoi_fe2) * (Bicarbonate**stoi_bicarbonate)) / &
-    ((Ac**stoi_ac) * (Proton**stoi_proton))
+  reaction_Q = ( (Fe2**stoi_fe2) * (Ac**stoi_ac) * (Bicarbonate**stoi_bicarbonate)) / &
+      ((Lac**stoi_lac) * (Proton**stoi_proton))
 
   dGr = dG0 + RT*log(reaction_Q)
-  
-  ! Monod expressions for acetate
+
+  ! Monod expression for acetate
   Fa = Ac / (Ac + this%Ka)
+
+  ! Monod expressions for lactate
+  Fl = Lac / (Lac + this%Kl)
 
   ! Thermodynamic factor 
   Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
 
   if (Ft < 0) then 
-    Ftr = 0.d0
+      Ftr = 0.d0
   else
-    Ftr = Ft
+      Ftr = Ft
   endif
-
+  
   ! TST for precipitation; uses pkeq from database
   lnQK = -mineral%kinmnrl_logK(imnrl)*LOG_TO_LN
 
@@ -372,7 +387,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
     endif
 
     if (this%test == 2) then
-      Rate = -k_diss *  Fa 
+      Rate = -k_diss *  Fa * Fl
     endif
 
     if (this%test == 3) then
@@ -384,11 +399,11 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
     endif
 
     if (this%test == 5) then
-      Rate = -k_diss *  Fa * Ftr   
+      Rate = -k_diss *  Fa * Ftr  * Fl 
     endif
 
     if (this%test == 6) then
-      Rate = -k_diss *  Fa * Ftr * Xim  
+      Rate = -k_diss *  Fa * Fl * Ftr * Xim  
     endif
     !Rate = -k_diss
   
@@ -399,14 +414,16 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
     Rate = Rate * material_auxvar%volume ! mol/sec
       
     ! species-specifc 
+    Rate_Lac = Rate * stoi_lac
     Rate_Ac = Rate * stoi_ac  
     Rate_Proton = Rate * stoi_proton 
     Rate_Fe2 = Rate * stoi_fe2 
     Rate_Bicarbonate = Rate * stoi_bicarbonate 
     !Rate_Xim = Rate * yield
     
+    Residual(this%lactate_id) = Residual(this%lactate_id) - Rate_Lac
     Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
-    Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
+    Residual(this%acetate_id) = Residual(this%acetate_id) + Rate_Ac
     Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
     Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
 
@@ -433,113 +450,10 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
     endif
 
   endif
-  !if (compute_derivative .and. calculate_rate) then
-  !  ! derivative of rate wrt affinity factor (1-QK)
-  !  ! mol/sec   ! m^2 mnrl/m^3 bulk          ! mol/m^2 mnrl/sec
-  !  drate = rt_auxvar%mnrl_area(imnrl) * this%rate_constant1 * &
-  !              ! m^3 bulk
-  !              material_auxvar%volume!
 
- !  drate_h = drate * stoi_proton
-  !  drate_ac = drate * stoi_ac
-  !  drate_fe2 = drate * stoi_fe2
-  !  drate_bicarbonate = drate * stoi_bicarbonate
-    !drate_xim = drate * yield
-
-    ! derivative wrt H+
-  !  jcomp = this%h_ion_id
-                                    ! subtract due to H+ stoichiometry
-  !  Jacobian(this%h_ion_id,jcomp) = &
-  !    Jacobian(this%h_ion_id,jcomp) - drate_h
-                                    ! subtract due to Ac- stoichiometry
-  !  Jacobian(this%acetate_id,jcomp) = &
-   !   Jacobian(this%acetate_id,jcomp) - drate_ac
-                                    ! add due to HCO3- stoichiometry
-    !Jacobian(this%bicarbonate_id,jcomp) = &
-    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
-                                    ! add due to Fe2+ stoichiometry
-   ! Jacobian(this%fe2_id,jcomp) = &
-   !   Jacobian(this%fe2_id,jcomp) + drate_fe2
-                                    ! add due to Xim stoichiometry
-    !Jacobian(this%xim_id,jcomp) = &
-    !  Jacobian(this%xim_id,jcomp) + drate_xim
-
-    ! derivative wrt Ac-
-    !jcomp = this%acetate_id
-                                    ! subtract due to H+ stoichiometry
-    !Jacobian(this%h_ion_id,jcomp) = &
-    !  Jacobian(this%h_ion_id,jcomp) - drate_h
-                                    ! subtract due to Ac- stoichiometry
-    !!Jacobian(this%acetate_id,jcomp) = &
-    !  Jacobian(this%acetate_id,jcomp) - drate_ac
-                                    ! add due to HCO3- stoichiometry
-    !Jacobian(this%bicarbonate_id,jcomp) = &
-    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
-                                    ! add due to Fe2+ stoichiometry
-    !Jacobian(this%fe2_id,jcomp) = &
-    !  Jacobian(this%fe2_id,jcomp) + drate_fe2
-                                    ! add due to Xim stoichiometry
-    !Jacobian(this%xim_id,jcomp) = &
-    !  Jacobian(this%xim_id,jcomp) + drate_xim
-
-    ! derivative wrt HCO3-
-    !jcomp = this%bicarbonate_id
-                                    ! subtract due to H+ stoichiometry
-    !!Jacobian(this%h_ion_id,jcomp) = &
-    !  Jacobian(this%h_ion_id,jcomp) - drate_h
-                                    ! subtract due to Ac- stoichiometry
-    !Jacobian(this%acetate_id,jcomp) = &
-    !  Jacobian(this%acetate_id,jcomp) - drate_ac
-                                    ! add due to HCO3- stoichiometry
-    !Jacobian(this%bicarbonate_id,jcomp) = &
-    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
-                                    ! add due to Fe2+ stoichiometry
-    !Jacobian(this%fe2_id,jcomp) = &
-    !  Jacobian(this%fe2_id,jcomp) + drate_fe2
-                                    ! add due to Xim stoichiometry
-    !Jacobian(this%xim_id,jcomp) = &
-    !  Jacobian(this%xim_id,jcomp) + drate_xim
-
-    ! derivative wrt Fe2+
-    !jcomp = this%fe2_id
-                                    ! subtract due to H+ stoichiometry
-    !Jacobian(this%h_ion_id,jcomp) = &
-    !  Jacobian(this%h_ion_id,jcomp) - drate_h
-                                    ! subtract due to Ac- stoichiometry
-    !Jacobian(this%acetate_id,jcomp) = &
-    !  Jacobian(this%acetate_id,jcomp) - drate_ac
-                                    ! add due to HCO3- stoichiometry
-    !Jacobian(this%bicarbonate_id,jcomp) = &
-    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
-                                    ! add due to Fe2+ stoichiometry
-    !!Jacobian(this%fe2_id,jcomp) = &
-    !  Jacobian(this%fe2_id,jcomp) + drate_fe2
-                                    ! add due to Xim stoichiometry
-    !Jacobian(this%xim_id,jcomp) = &
-    !  Jacobian(this%xim_id,jcomp) + drate_xim
-
-    ! derivative wrt Xim
-    !jcomp = this%xim_id
-                                    ! subtract due to H+ stoichiometry
-    !Jacobian(this%h_ion_id,jcomp) = &
-    !  Jacobian(this%h_ion_id,jcomp) - drate_h
-                                    ! subtract due to Ac- stoichiometry
-    !Jacobian(this%acetate_id,jcomp) = &
-    !  Jacobian(this%acetate_id,jcomp) - drate_ac
-                                    ! add due to HCO3- stoichiometry
-    !Jacobian(this%bicarbonate_id,jcomp) = &
-    !  Jacobian(this%bicarbonate_id,jcomp) + drate_bicarbonate
-                                    ! add due to Fe2+ stoichiometry
-    !Jacobian(this%fe2_id,jcomp) = &
-    !  Jacobian(this%fe2_id,jcomp) + drate_fe2
-                                    ! add due to Xim stoichiometry
-    !Jacobian(this%xim_id,jcomp) = &
-    !  Jacobian(this%xim_id,jcomp) + drate_xim
-
-  !endif
-end subroutine FerrihydriteEvaluate
+end subroutine FhLactateEvaluate
 ! ************************************************************************** !
-subroutine FerrihydriteUpdateKineticState(this,rt_auxvar,global_auxvar, &
+subroutine FhLactateUpdateKineticState(this,rt_auxvar,global_auxvar, &
                                      material_auxvar,reaction,option)
   !
   ! Updates mineral volume fraction at end converged timestep based on latest
@@ -551,7 +465,7 @@ subroutine FerrihydriteUpdateKineticState(this,rt_auxvar,global_auxvar, &
   use Global_Aux_module
   use Material_Aux_class
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_fh_lactate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
   class(material_auxvar_type) :: material_auxvar
@@ -572,5 +486,5 @@ subroutine FerrihydriteUpdateKineticState(this,rt_auxvar,global_auxvar, &
   ! zero to avoid negative volume fractions
   if (rt_auxvar%mnrl_volfrac(imnrl) < 0.d0) &
     rt_auxvar%mnrl_volfrac(imnrl) = 0.d0
-end subroutine FerrihydriteUpdateKineticState
-end module Reaction_Sandbox_Ferrihydrite_class
+end subroutine FhLactateUpdateKineticState
+end module Reaction_Sandbox_Fh_Lactate_class

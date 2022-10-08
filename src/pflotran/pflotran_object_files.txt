@@ -133,6 +133,9 @@ chem_obj = \
 	${common_src}reaction_sandbox_example.o \
 	${common_src}reaction_sandbox_biohill.o \
 	${common_src}reaction_sandbox_ferrihydrite.o \
+	${common_src}reaction_sandbox_fh_lactate.o \
+	${common_src}reaction_sandbox_gt_acetate.o \
+	${common_src}reaction_sandbox_gt_lactate.o \
 	${common_src}reaction_sandbox_flexbiohill.o \
 	${common_src}reaction_sandbox_pnnl_cyber.o \
 	${common_src}reaction_sandbox_gas.o \

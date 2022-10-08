@@ -1,4 +1,4 @@
-module Reaction_Sandbox_Ferrihydrite_class
+module Reaction_Sandbox_Gt_Acetate_class
 #include "petsc/finclude/petscsys.h"
   use petscsys
   use Reaction_Sandbox_Base_class
@@ -9,7 +9,7 @@ module Reaction_Sandbox_Ferrihydrite_class
   private
   type, public, &
     extends(reaction_sandbox_base_type) :: &
-      reaction_sandbox_ferrihydrite_type
+      reaction_sandbox_gt_acetate_type
     PetscInt :: auxiliary_offset
     PetscInt :: h_ion_id
     PetscInt :: fe2_id
@@ -28,46 +28,46 @@ module Reaction_Sandbox_Ferrihydrite_class
     PetscInt :: test
 
   contains
-    procedure, public :: ReadInput => FerrihydriteReadInput
-    procedure, public :: Setup => FerrihydriteSetup
-    procedure, public :: AuxiliaryPlotVariables => FerrihydriteAuxiliaryPlotVariables
-    procedure, public :: Evaluate => FerrihydriteEvaluate
-    procedure, public :: UpdateKineticState => FerrihydriteUpdateKineticState
-  end type reaction_sandbox_ferrihydrite_type
+    procedure, public :: ReadInput => GtAcetateReadInput
+    procedure, public :: Setup => GtAcetateSetup
+    procedure, public :: AuxiliaryPlotVariables => GtAcetateAuxiliaryPlotVariables
+    procedure, public :: Evaluate => GtAcetateEvaluate
+    procedure, public :: UpdateKineticState => GtAcetateUpdateKineticState
+  end type reaction_sandbox_gt_acetate_type
 
-  public :: FerrihydriteCreate, &
-            FerrihydriteSetup
+  public :: GtAcetateCreate, &
+            GtAcetateSetup
 contains
 ! ************************************************************************** !
-function FerrihydriteCreate()
+function GtAcetateCreate()
   !
-  ! Allocates Ferrihydrite reaction object.
+  ! Allocates GtAcetate reaction object.
   !
   implicit none
-  class(reaction_sandbox_ferrihydrite_type), pointer :: FerrihydriteCreate
-  allocate(FerrihydriteCreate)
-  FerrihydriteCreate%auxiliary_offset = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%h_ion_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%fe2_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%acetate_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%bicarbonate_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%o2aq_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%mineral_id = UNINITIALIZED_INTEGER
-  FerrihydriteCreate%xim_id = UNINITIALIZED_INTEGER
+  class(reaction_sandbox_gt_acetate_type), pointer :: GtAcetateCreate
+  allocate(GtAcetateCreate)
+  GtAcetateCreate%auxiliary_offset = UNINITIALIZED_INTEGER
+  GtAcetateCreate%h_ion_id = UNINITIALIZED_INTEGER
+  GtAcetateCreate%fe2_id = UNINITIALIZED_INTEGER
+  GtAcetateCreate%acetate_id = UNINITIALIZED_INTEGER
+  GtAcetateCreate%bicarbonate_id = UNINITIALIZED_INTEGER
+  GtAcetateCreate%o2aq_id = UNINITIALIZED_INTEGER
+  GtAcetateCreate%mineral_id = UNINITIALIZED_INTEGER
+  GtAcetateCreate%xim_id = UNINITIALIZED_INTEGER
 
-  FerrihydriteCreate%rate_constant1 = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%rate_constant2 = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%Ka = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%Y = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%m = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%chi = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%o2_threshold = UNINITIALIZED_DOUBLE
-  FerrihydriteCreate%test = UNINITIALIZED_INTEGER
+  GtAcetateCreate%rate_constant1 = UNINITIALIZED_DOUBLE
+  GtAcetateCreate%rate_constant2 = UNINITIALIZED_DOUBLE
+  GtAcetateCreate%Ka = UNINITIALIZED_DOUBLE
+  GtAcetateCreate%Y = UNINITIALIZED_DOUBLE
+  GtAcetateCreate%m = UNINITIALIZED_DOUBLE
+  GtAcetateCreate%chi = UNINITIALIZED_DOUBLE
+  GtAcetateCreate%o2_threshold = UNINITIALIZED_DOUBLE
+  GtAcetateCreate%test = UNINITIALIZED_INTEGER
 
-  nullify(FerrihydriteCreate%next)
-end function FerrihydriteCreate
+  nullify(GtAcetateCreate%next)
+end function GtAcetateCreate
 ! ************************************************************************** !
-subroutine FerrihydriteReadInput(this,input,option)
+subroutine GtAcetateReadInput(this,input,option)
   !
   ! Reads calcite reaction parameters
   !
@@ -75,12 +75,12 @@ subroutine FerrihydriteReadInput(this,input,option)
   use Input_Aux_module
   use String_module
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_gt_acetate_type) :: this
   type(input_type), pointer :: input
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXSTRINGLENGTH) :: error_string
-  error_string = 'CHEMISTRY,REACTION_SANDBOX,FERRIHYDRITE'
+  error_string = 'CHEMISTRY,REACTION_SANDBOX,GT_ACETATE'
   call InputPushBlock(input,option)
   do
     call InputReadPflotranString(input,option)
@@ -127,12 +127,12 @@ subroutine FerrihydriteReadInput(this,input,option)
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
     option%io_buffer = 'K_DISSOLUTION, K_PRECIPITATION, KA, Y, M, CHI, and O2_THRESHOLD must be set for &
-      REACTION_SANDBOX_FERRIHYDRITE.'
+      REACTION_SANDBOX_GT_ACETATE.'
     call PrintErrMsg(option)
   endif
-end subroutine FerrihydriteReadInput
+end subroutine GtAcetateReadInput
 ! ************************************************************************** !
-subroutine FerrihydriteSetup(this,reaction,option)
+subroutine GtAcetateSetup(this,reaction,option)
   !
   ! Sets up the calcite reaction with hardwired parameters
   !
@@ -141,7 +141,7 @@ subroutine FerrihydriteSetup(this,reaction,option)
   use Reaction_Immobile_Aux_module, only: GetImmobileSpeciesIDFromName
   use Option_module
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_gt_acetate_type) :: this
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
@@ -165,42 +165,42 @@ subroutine FerrihydriteSetup(this,reaction,option)
   word = 'O2(aq)'
   this%o2aq_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
-  word = 'Ferrihydrite'
+  word = 'Goethite'
   this%mineral_id = &
     GetMineralIDFromName(word,reaction%mineral,option)
   word = 'Xim'
   this%xim_id = &
     GetImmobileSpeciesIDFromName(word,reaction%immobile,option)
 
-end subroutine FerrihydriteSetup
+end subroutine GtAcetateSetup
 ! ************************************************************************** !
-subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
+subroutine GtAcetateAuxiliaryPlotVariables(this,list,reaction,option)
   !
-  ! Adds ferrihydrite auxiliary plot variables to output list
+  ! Adds goethite auxiliary plot variables to output list
   !
   use Option_module
   use Reaction_Aux_module
   use Output_Aux_module
   use Variables_module, only : REACTION_AUXILIARY
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_gt_acetate_type) :: this
   type(output_variable_list_type), pointer :: list
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'Fh Acetate Sandbox Rate'
+  word = 'Gt Acetate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
   
-end subroutine FerrihydriteAuxiliaryPlotVariables
+end subroutine GtAcetateAuxiliaryPlotVariables
 ! ************************************************************************** !
-subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
+subroutine GtAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
                            rt_auxvar,global_auxvar,material_auxvar, &
                            reaction,option)
   !Jacobian,compute_derivative,
-  ! Evaluates ferrihydrite reaction storing residual but no Jacobian
+  ! Evaluates GtAcetate reaction storing residual but no Jacobian
   !
   ! 
   !
@@ -215,7 +215,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   use Material_Aux_class
   use Reaction_Mineral_Aux_module
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_gt_acetate_type) :: this
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   PetscBool :: compute_derivative
@@ -240,7 +240,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
 
   PetscReal :: Ac, Proton, Fe2, Bicarbonate
   PetscReal :: Xim, yield, O2aq
-  PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_fh
+  PetscReal :: Rate, Rate_Ac, Rate_Proton
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
   PetscReal :: stoi_ac, stoi_proton
   PetscReal :: stoi_fe2, stoi_bicarbonate
@@ -271,7 +271,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   imnrl = this%mineral_id
 
   if (dabs(rt_auxvar%mnrl_rate(imnrl)) > 1.d-40) then
-    option%io_buffer = 'For REACTION_SANDBOX_FERRIHYDRITE to function correctly, &
+    option%io_buffer = 'For REACTION_SANDBOX_GTACETATE to function correctly, &
       &the RATE_CONSTANT in the default MINERAL_KINETICS block must be set &
       &to zero.'
     call PrintErrMsg(option)
@@ -287,7 +287,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
 
 
   ! Rxn:    1.00 Ac- + 8.00 FHY + 15.00 H+ = 8.00 Fe++ + 2.00 HCO3- + 20.00 H2O 
-  ! dG0 =   -612.0 kJ per mol Ac- 
+  ! dG0 =   -464.2 kJ per mol Ac- 
 
   Ac = rt_auxvar%pri_molal(this%acetate_id) * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
@@ -312,7 +312,7 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
   stoi_proton = 15.d0 !+ 2.d0  ! +2.d0 to account for H+ consumed in database formulation 
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
-  dG0 = (-612.0d0) ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
+  dG0 = (-464.2d0) ! kJ / mol acetate; dG0 for FeIII in goethite as electron acceptor; Kocar & Fendorf, 2009
   dG_ATP = 50.d0 ! kJ / mol ATP
 
   reaction_Q = ( (Fe2**stoi_fe2) * (Bicarbonate**stoi_bicarbonate)) / &
@@ -392,9 +392,8 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
     endif
     !Rate = -k_diss
   
-    Rate_fh = Rate
     
-    rt_auxvar%auxiliary_data(iauxiliary) = Rate_fh
+    rt_auxvar%auxiliary_data(iauxiliary) = Rate
 
     Rate = Rate * material_auxvar%volume ! mol/sec
       
@@ -537,9 +536,9 @@ subroutine FerrihydriteEvaluate(this, Residual,Jacobian,compute_derivative, &
     !  Jacobian(this%xim_id,jcomp) + drate_xim
 
   !endif
-end subroutine FerrihydriteEvaluate
+end subroutine GtAcetateEvaluate
 ! ************************************************************************** !
-subroutine FerrihydriteUpdateKineticState(this,rt_auxvar,global_auxvar, &
+subroutine GtAcetateUpdateKineticState(this,rt_auxvar,global_auxvar, &
                                      material_auxvar,reaction,option)
   !
   ! Updates mineral volume fraction at end converged timestep based on latest
@@ -551,7 +550,7 @@ subroutine FerrihydriteUpdateKineticState(this,rt_auxvar,global_auxvar, &
   use Global_Aux_module
   use Material_Aux_class
   implicit none
-  class(reaction_sandbox_ferrihydrite_type) :: this
+  class(reaction_sandbox_gt_acetate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
   class(material_auxvar_type) :: material_auxvar
@@ -572,5 +571,5 @@ subroutine FerrihydriteUpdateKineticState(this,rt_auxvar,global_auxvar, &
   ! zero to avoid negative volume fractions
   if (rt_auxvar%mnrl_volfrac(imnrl) < 0.d0) &
     rt_auxvar%mnrl_volfrac(imnrl) = 0.d0
-end subroutine FerrihydriteUpdateKineticState
-end module Reaction_Sandbox_Ferrihydrite_class
+end subroutine GtAcetateUpdateKineticState
+end module Reaction_Sandbox_Gt_Acetate_class
