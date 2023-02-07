@@ -11,6 +11,13 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_Fh_Lactate_class
   use Reaction_Sandbox_Gt_Acetate_class
   use Reaction_Sandbox_Gt_Lactate_class
+  use Reaction_Sandbox_JinBethke_Sulfate_class
+  use Reaction_Sandbox_JinBethke_Nitrate_class
+  use Reaction_Sandbox_JinBethke_Sulfate_Lactate_class
+  use Reaction_Sandbox_JinBethke_Goethite_Acetate_class
+  use Reaction_Sandbox_JinBethke_Goethite_Lactate_class
+  use Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
+  use Reaction_Sandbox_JinBethke_Ferrihydrite_Lactate_class
   use Reaction_Sandbox_Simple_class
   use Reaction_Sandbox_Cyber_class
   use Reaction_Sandbox_Gas_class
@@ -187,6 +194,20 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => GtAcetateCreate()
       case('GT_LACTATE')
         new_sandbox => GtLactateCreate()
+      case('JINBETHKE_FERRIHYDRITE_ACETATE')
+        new_sandbox => JinBethkeFerrihydriteAcetateCreate()
+      case('JINBETHKE_FERRIHYDRITE_LACTATE')
+        new_sandbox => JinBethkeFerrihydriteLactateCreate()
+      case('JINBETHKE_GOETHITE_ACETATE')
+        new_sandbox => JinBethkeGoethiteAcetateCreate()
+      case('JINBETHKE_GOETHITE_LACTATE')
+        new_sandbox => JinBethkeGoethiteLactateCreate()
+      case('JINBETHKE_SULFATE_ACETATE')
+        new_sandbox => JinBethkeSulfateCreate()
+      case('JINBETHKE_SULFATE_LACTATE')
+        new_sandbox => JinBethkeSulfateLactateCreate()
+      case('JINBETHKE_NITRATE_ACETATE')
+        new_sandbox => JinBethkeNitrateCreate()
       case default
         call InputKeywordUnrecognized(input,word, &
                                       'CHEMISTRY,REACTION_SANDBOX',option)

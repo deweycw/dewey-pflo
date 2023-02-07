@@ -136,6 +136,13 @@ chem_obj = \
 	${common_src}reaction_sandbox_fh_lactate.o \
 	${common_src}reaction_sandbox_gt_acetate.o \
 	${common_src}reaction_sandbox_gt_lactate.o \
+	${common_src}reaction_sandbox_jinbethke_nitrate.o \
+	${common_src}reaction_sandbox_jinbethke_sulfate_acetate.o \
+	${common_src}reaction_sandbox_jinbethke_sulfate_lactate.o \
+	${common_src}reaction_sandbox_jinbethke_gt_acetate.o \
+	${common_src}reaction_sandbox_jinbethke_gt_lactate.o \
+	${common_src}reaction_sandbox_jinbethke_fh_acetate.o \
+	${common_src}reaction_sandbox_jinbethke_fh_lactate.o \
 	${common_src}reaction_sandbox_flexbiohill.o \
 	${common_src}reaction_sandbox_pnnl_cyber.o \
 	${common_src}reaction_sandbox_gas.o \
