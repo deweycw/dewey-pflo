@@ -194,7 +194,7 @@ subroutine JinBethkeFerrihydriteLactateAuxiliaryPlotVariables(this,list,reaction
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'JB Ferrihydrite Reduction / Lactate Oxidation Rate'
+  word = 'JB Fh Lactate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &

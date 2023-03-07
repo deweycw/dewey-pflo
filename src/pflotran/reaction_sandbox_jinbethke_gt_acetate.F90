@@ -183,7 +183,7 @@ subroutine JinBethkeGoethiteAcetateAuxiliaryPlotVariables(this,list,reaction,opt
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'JB Goethite Reduction / Acetate Oxidation Rate'
+  word = 'JB Gt Acetate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &

@@ -183,7 +183,7 @@ subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'JB Ferrihydrite Reduction / Acetate Oxidation Rate'
+  word = 'JB Fh Acetate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &

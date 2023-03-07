@@ -187,7 +187,7 @@ subroutine JinBethkeSulfateLactateAuxiliaryPlotVariables(this,list,reaction,opti
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'JB Sulfafte Reduction / Lactate Oxidation Rate'
+  word = 'JB Sulfafte Lactate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
