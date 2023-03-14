@@ -118,7 +118,7 @@ subroutine FhGtMineralRipeningAuxiliaryPlotVariables(this,list,reaction,option)
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'Fg to Gt Ripening Sandbox Rate'
+  word = 'Fh to Gt Ripening Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
@@ -219,8 +219,8 @@ subroutine FhGtMineralRipeningUpdateKineticState(this,rt_auxvar,global_auxvar, &
   type(option_type) :: option
   PetscInt :: imnrl, jmnrl 
   PetscReal :: delta_volfrac_imnrl, delta_volfrac_jmnrl
-  imnrl = this%gt_mineral_id
-  jmnrl = this%fh_mineral_id
+  imnrl = this%fh_mineral_id
+  jmnrl = this%gt_mineral_id
   ! rate = mol/m^3/sec
   ! dvolfrac = m^3 mnrl/m^3 bulk = rate (mol mnrl/m^3 bulk/sec) *
   !                                mol_vol (m^3 mnrl/mol mnrl)
