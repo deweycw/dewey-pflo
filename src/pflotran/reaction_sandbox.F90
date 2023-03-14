@@ -7,10 +7,6 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_CLM_CN_class
   use Reaction_Sandbox_UFD_WP_class
   use Reaction_Sandbox_Example_class
-  use Reaction_Sandbox_Ferrihydrite_class
-  use Reaction_Sandbox_Fh_Lactate_class
-  use Reaction_Sandbox_Gt_Acetate_class
-  use Reaction_Sandbox_Gt_Lactate_class
   use Reaction_Sandbox_JinBethke_Sulfate_class
   use Reaction_Sandbox_JinBethke_Nitrate_class
   use Reaction_Sandbox_JinBethke_Sulfate_Lactate_class
@@ -18,6 +14,9 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_JinBethke_Goethite_Lactate_class
   use Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
   use Reaction_Sandbox_JinBethke_Ferrihydrite_Lactate_class
+  use Reaction_Sandbox_Fe_Mineral_Precipitation_class
+  use Reaction_Sandbox_Fe_Fh_Mineral_Ripening_class
+  use Reaction_Sandbox_Fh_Gt_Mineral_Ripening_class
   use Reaction_Sandbox_Simple_class
   use Reaction_Sandbox_Cyber_class
   use Reaction_Sandbox_Gas_class
@@ -186,14 +185,6 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => FlexBioHillCreate()
       case('BIOPARTICLE')
         new_sandbox => BioTH_Create()
-      case('FH_ACETATE')
-        new_sandbox => FerrihydriteCreate()
-      case('FH_LACTATE')
-        new_sandbox => FhLactateCreate()
-      case('GT_ACETATE')
-        new_sandbox => GtAcetateCreate()
-      case('GT_LACTATE')
-        new_sandbox => GtLactateCreate()
       case('JINBETHKE_FERRIHYDRITE_ACETATE')
         new_sandbox => JinBethkeFerrihydriteAcetateCreate()
       case('JINBETHKE_FERRIHYDRITE_LACTATE')
@@ -208,6 +199,12 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => JinBethkeSulfateLactateCreate()
       case('JINBETHKE_NITRATE_ACETATE')
         new_sandbox => JinBethkeNitrateCreate()
+      case('FE_MINERAL_PRECIPITATION')
+        new_sandbox => FeMineralPrecipitationCreate()
+      case('FE_FH_MINERAL_RIPENING')
+        new_sandbox => FeFhMineralRipeningCreate()
+      case('FH_GT_MINERAL_RIPENING')
+        new_sandbox => FhGtMineralRipeningCreate()
       case default
         call InputKeywordUnrecognized(input,word, &
                                       'CHEMISTRY,REACTION_SANDBOX',option)
