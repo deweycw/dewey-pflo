@@ -21,6 +21,7 @@ module Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
     PetscReal :: rmax
     PetscReal :: rate_precip
     PetscReal :: Kdonor
+    PetscReal :: Kacceptor
     PetscReal :: Y
     PetscReal :: m
     PetscReal :: chi
@@ -57,6 +58,7 @@ function JinBethkeFerrihydriteAcetateCreate()
   JinBethkeFerrihydriteAcetateCreate%rmax = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteAcetateCreate%rate_precip = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteAcetateCreate%Kdonor = UNINITIALIZED_DOUBLE
+  JinBethkeFerrihydriteAcetateCreate%Kacceptor = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteAcetateCreate%Y = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteAcetateCreate%m = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteAcetateCreate%chi = UNINITIALIZED_DOUBLE
@@ -94,6 +96,9 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
       case('K_DONOR')
         call InputReadDouble(input,option,this%Kdonor)
         call InputErrorMsg(input,option,word,error_string)
+      case('K_ACCEPTOR')
+        call InputReadDouble(input,option,this%Kacceptor)
+        call InputErrorMsg(input,option,word,error_string)
       case('Y')
         call InputReadDouble(input,option,this%Y)
         call InputErrorMsg(input,option,word,error_string)
@@ -117,11 +122,12 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
   if (Uninitialized(this%rmax) .or. &
       Uninitialized(this%rate_precip) .or. &
       Uninitialized(this%Kdonor) .or. &
+      Uninitialized(this%Kacceptor) .or. &
       Uninitialized(this%Y) .or. &
       Uninitialized(this%m) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'RMAX, K_PRECIPITATION, K_DONOR, Y, M, CHI, and O2_THRESHOLD must be set for &
+    option%io_buffer = 'RMAX, K_PRECIPITATION, K_DONOR, K_ACCEPTOR, Y, M, CHI, and O2_THRESHOLD must be set for &
       JINBETHKE_FERRIHYDRITE_ACETATE.'
     call PrintErrMsg(option)
   endif
@@ -238,7 +244,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: stoi_fe2, stoi_bicarbonate
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
-  PetscReal :: Ft, Ftr, Fa
+  PetscReal :: Ft, Ftr, Fa, Ff
   PetscReal :: reaction_Q
   PetscReal :: dG0, dGr, dG_ATP
 
@@ -315,6 +321,10 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   ! Monod expressions for acetate
   Fa = Ac / (Ac + this%Kdonor)
 
+  ! Fe(III) phase accessibility factor (Monod)
+  Ff = rt_auxvar%mnrl_volfrac(imnrl) / &
+    (rt_auxvar%mnrl_volfrac(imnrl) + this%Kacceptor)
+
   ! Thermodynamic factor 
   Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
 
@@ -354,7 +364,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_diss *  Fa * Ftr * fim  
+    Rate = -k_diss *  Fa * Ftr * Ff * fim  
 
     Rate_fh = Rate
     

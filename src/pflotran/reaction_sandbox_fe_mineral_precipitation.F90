@@ -122,7 +122,7 @@ subroutine FeMineralPrecipitationAuxiliaryPlotVariables(this,list,reaction,optio
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'Fe(OH)3(s) Precipitation Sandbox Rate'
+  word = 'Fe(OH)3(s) Precip. Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &

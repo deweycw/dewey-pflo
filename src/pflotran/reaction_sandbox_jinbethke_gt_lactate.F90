@@ -22,6 +22,7 @@ module Reaction_Sandbox_JinBethke_Goethite_Lactate_class
     PetscReal :: rmax
     PetscReal :: r_precip
     PetscReal :: Kacetate
+    PetscReal :: Kacceptor
     PetscReal :: Kl
     PetscReal :: Y
     PetscReal :: m
@@ -60,6 +61,7 @@ function JinBethkeGoethiteLactateCreate()
   JinBethkeGoethiteLactateCreate%rmax = UNINITIALIZED_DOUBLE
   JinBethkeGoethiteLactateCreate%r_precip = UNINITIALIZED_DOUBLE
   JinBethkeGoethiteLactateCreate%Kacetate = UNINITIALIZED_DOUBLE
+  JinBethkeGoethiteLactateCreate%Kacceptor = UNINITIALIZED_DOUBLE
   JinBethkeGoethiteLactateCreate%Kl = UNINITIALIZED_DOUBLE
   JinBethkeGoethiteLactateCreate%Y = UNINITIALIZED_DOUBLE
   JinBethkeGoethiteLactateCreate%m = UNINITIALIZED_DOUBLE
@@ -100,6 +102,9 @@ subroutine JinBethkeGoethiteLactateReadInput(this,input,option)
       case('K_LACTATE')
         call InputReadDouble(input,option,this%Kl)
         call InputErrorMsg(input,option,word,error_string)
+      case('K_ACCEPTOR')
+        call InputReadDouble(input,option,this%Kacceptor)
+        call InputErrorMsg(input,option,word,error_string)
       case('Y')
         call InputReadDouble(input,option,this%Y)
         call InputErrorMsg(input,option,word,error_string)
@@ -128,7 +133,7 @@ subroutine JinBethkeGoethiteLactateReadInput(this,input,option)
       Uninitialized(this%m) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'RMAX, K_PRECIPITATION, K_ACETATE, K_LACTATE, Y, M, CHI, and O2_THRESHOLD must be set for &
+    option%io_buffer = 'RMAX, K_PRECIPITATION, K_ACETATE, K_LACTATE, K_ACCEPTOR, Y, M, CHI, and O2_THRESHOLD must be set for &
       JINBETHKE_GOETHITE_LACTATE.'
     call PrintErrMsg(option)
   endif
@@ -248,7 +253,7 @@ subroutine JinBethkeGoethiteLactateEvaluate(this, Residual,Jacobian,compute_deri
   PetscReal :: stoi_fe2, stoi_bicarbonate
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
-  PetscReal :: Ft, Ftr, Fa, Fl
+  PetscReal :: Ft, Ftr, Fa, Fl, Ff
   PetscReal :: reaction_Q
   PetscReal :: dG0, dGr, dG_ATP
 
@@ -329,6 +334,10 @@ subroutine JinBethkeGoethiteLactateEvaluate(this, Residual,Jacobian,compute_deri
   ! Monod expressions for lactate
   Fl = Lac / (Lac + this%Kl)
 
+  ! Fe(III) phase accessibility factor (Monod)
+  Ff = rt_auxvar%mnrl_volfrac(imnrl) / &
+    (rt_auxvar%mnrl_volfrac(imnrl) + this%Kacceptor)
+
   ! Thermodynamic factor 
   Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
 
@@ -368,7 +377,7 @@ subroutine JinBethkeGoethiteLactateEvaluate(this, Residual,Jacobian,compute_deri
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_diss *  Fa * Fl * Ftr * Fim  
+    Rate = -k_diss *  Fa * Fl * Ftr * Ff * Fim  
   
     Rate_gt = Rate
     

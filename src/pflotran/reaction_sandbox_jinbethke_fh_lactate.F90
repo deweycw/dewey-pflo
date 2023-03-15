@@ -22,6 +22,7 @@ module Reaction_Sandbox_JinBethke_Ferrihydrite_Lactate_class
     PetscReal :: rmax
     PetscReal :: r_precip
     PetscReal :: Kacetate
+    PetscReal :: Kacceptor
     PetscReal :: Kl
     PetscReal :: Y
     PetscReal :: m
@@ -60,6 +61,7 @@ function JinBethkeFerrihydriteLactateCreate()
   JinBethkeFerrihydriteLactateCreate%rmax = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteLactateCreate%r_precip = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteLactateCreate%Kacetate = UNINITIALIZED_DOUBLE
+  JinBethkeFerrihydriteLactateCreate%Kacceptor = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteLactateCreate%Kl = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteLactateCreate%Y = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteLactateCreate%m = UNINITIALIZED_DOUBLE
@@ -101,6 +103,9 @@ subroutine JinBethkeFerrihydriteLactateReadInput(this,input,option)
       case('K_LACTATE')
         call InputReadDouble(input,option,this%Kl)
         call InputErrorMsg(input,option,word,error_string)
+      case('K_ACCEPTOR')
+        call InputReadDouble(input,option,this%Kacceptor)
+        call InputErrorMsg(input,option,word,error_string)
       case('Y')
         call InputReadDouble(input,option,this%Y)
         call InputErrorMsg(input,option,word,error_string)
@@ -124,12 +129,13 @@ subroutine JinBethkeFerrihydriteLactateReadInput(this,input,option)
   if (Uninitialized(this%rmax) .or. &
       Uninitialized(this%r_precip) .or. &
       Uninitialized(this%Kacetate) .or. &
+      Uninitialized(this%Kacceptor) .or. &
       Uninitialized(this%Kl) .or. &
       Uninitialized(this%Y) .or. &
       Uninitialized(this%m) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'RMAX, K_PRECIPITATION, K_DONOR, KL, Y, M, CHI, and O2_THRESHOLD must be set for &
+    option%io_buffer = 'RMAX, K_PRECIPITATION, K_ACETATE, K_LACTATE, K_ACCEPTOR, Y, M, CHI, and O2_THRESHOLD must be set for &
       JINBETHKE_FERRIHYDRITE_LACTATE.'
     call PrintErrMsg(option)
   endif
@@ -249,7 +255,7 @@ subroutine JinBethkeFerrihydriteLactateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: stoi_fe2, stoi_bicarbonate
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
-  PetscReal :: Ft, Ftr, Fa, Fl
+  PetscReal :: Ft, Ftr, Fa, Fl, Ff
   PetscReal :: reaction_Q
   PetscReal :: dG0, dGr, dG_ATP
 
@@ -330,6 +336,10 @@ subroutine JinBethkeFerrihydriteLactateEvaluate(this, Residual,Jacobian,compute_
   ! Monod expressions for lactate
   Fl = Lac / (Lac + this%Kl)
 
+  ! Fe(III) phase accessibility factor (Monod)
+  Ff = rt_auxvar%mnrl_volfrac(imnrl) / &
+    (rt_auxvar%mnrl_volfrac(imnrl) + this%Kacceptor)
+
   ! Thermodynamic factor 
   Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
 
@@ -369,7 +379,7 @@ subroutine JinBethkeFerrihydriteLactateEvaluate(this, Residual,Jacobian,compute_
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_diss *  Fa * Fl * Ftr * Fim  
+    Rate = -k_diss *  Fa * Fl * Ftr * Fim * Ff 
   
     Rate_fh = Rate
     
