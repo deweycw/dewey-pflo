@@ -194,13 +194,12 @@ subroutine FhGtMineralRipeningEvaluate(this, Residual,Jacobian,compute_derivativ
 
   Rate = 0.d0 
 
-  calulate_rate = (rt_auxvar%mnrl_volfrac(imnrl) > 0
+  calculate_rate = (rt_auxvar%mnrl_volfrac(imnrl) > 0)
 
-  if (calculate_dissolution) then
-
+  if (calculate_rate) then
     Rate = k_ripen * Fe2 * rt_auxvar%mnrl_volfrac(imnrl)
-  
-  Rate = Rate * material_auxvar%volume ! mol/sec
+    Rate = Rate * material_auxvar%volume ! mol/sec
+  endif
 
   rt_auxvar%auxiliary_data(iauxiliary) = Rate
 
