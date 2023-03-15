@@ -170,6 +170,8 @@ subroutine FeFhMineralRipeningEvaluate(this, Residual,Jacobian,compute_derivativ
   PetscInt :: imnrl, jmnrl
   PetscInt :: iauxiliary
 
+  PetscBool :: calculate_rate
+
   mineral => reaction%mineral
 
   iauxiliary = this%auxiliary_offset + 1
@@ -189,10 +191,16 @@ subroutine FeFhMineralRipeningEvaluate(this, Residual,Jacobian,compute_derivativ
 
   Fe2 = rt_auxvar%pri_molal(this%fe2_id) * &
     rt_auxvar%pri_act_coef(this%fe2_id) 
-    
-  Rate = k_ripen * Fe2
   
-  !Rate = Rate * material_auxvar%volume ! mol/sec
+  Rate = 0.d0 
+
+  calulate_rate = (rt_auxvar%mnrl_volfrac(imnrl) > 0
+
+  if (calculate_dissolution) then
+
+    Rate = k_ripen * Fe2 * rt_auxvar%mnrl_volfrac(imnrl)
+  
+  Rate = Rate * material_auxvar%volume ! mol/sec
 
   rt_auxvar%auxiliary_data(iauxiliary) = Rate
 
