@@ -142,6 +142,7 @@ chem_obj = \
 	${common_src}reaction_sandbox_fe_mineral_precipitation.o \
 	${common_src}reaction_sandbox_fe_fh_mineral_ripening.o \
 	${common_src}reaction_sandbox_fh_gt_mineral_ripening.o \
+	${common_src}reaction_sandbox_dom_carboxyl_phenolic.o \
 	${common_src}reaction_sandbox_flexbiohill.o \
 	${common_src}reaction_sandbox_pnnl_cyber.o \
 	${common_src}reaction_sandbox_gas.o \
