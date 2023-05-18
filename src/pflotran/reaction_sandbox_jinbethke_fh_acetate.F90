@@ -142,7 +142,8 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
       if (this%dom_check) then
         case('FE_DOM_RATIO')
           call InputReadDouble(input,option,this%fe_dom_ratio)
-          call InputErrorMsg(input,option,word,error_string)  
+          call InputErrorMsg(input,option,word,error_string) 
+      endif 
       case default
         call InputKeywordUnrecognized(input,word,error_string,option)
     end select
