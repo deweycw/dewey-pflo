@@ -16,6 +16,7 @@ module Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
     PetscInt :: acetate_id
     PetscInt :: bicarbonate_id
     PetscInt :: o2aq_id
+    PetscInt :: domaq_id
     PetscInt :: mineral_id
     PetscInt :: fim_id
     PetscReal :: rmax
@@ -27,6 +28,8 @@ module Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
     PetscReal :: chi
     PetscReal :: o2_threshold
     PetscBool :: dom_check
+    PetscReal :: fe_dom_ratio
+    
 
   contains
     procedure, public :: ReadInput => JinBethkeFerrihydriteAcetateReadInput
@@ -66,6 +69,7 @@ function JinBethkeFerrihydriteAcetateCreate()
   JinBethkeFerrihydriteAcetateCreate%o2_threshold = UNINITIALIZED_DOUBLE
 
   JinBethkeFerrihydriteAcetateCreate%dom_check = PETSC_FALSE
+  JinBethkeFerrihydriteAcetateCreate%fe_dom_ratio = UNINITIALIZED_DOUBLE
 
   nullify(JinBethkeFerrihydriteAcetateCreate%next)
 end function JinBethkeFerrihydriteAcetateCreate
@@ -134,6 +138,10 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
             call InputKeywordUnrecognized(input,word, &
                          trim(error_string)//&
                          'INCLUDE_DOM',option)
+        case('FE_DOM_RATIO')
+          call InputReadDouble(input,option,this%fe_dom_ratio)
+          call InputErrorMsg(input,option,word,error_string)
+        end select
       case default
         call InputKeywordUnrecognized(input,word,error_string,option)
     end select
@@ -260,12 +268,12 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: L_water              ! L water
 
   PetscReal :: Ac, Proton, Fe2, Bicarbonate
-  PetscReal :: fim, yield, O2aq
+  PetscReal :: fim, yield, O2aq, DOMaq
   PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_fh
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
   PetscReal :: stoi_ac, stoi_proton
   PetscReal :: stoi_fe2, stoi_bicarbonate
-  PetscReal :: stoi_dom, RateDom
+  PetscReal :: stoi_dom, Rate_Dom
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fa, Ff
@@ -336,7 +344,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   stoi_ac = 1.d0
   stoi_proton = 15.d0 !+ 2.d0  ! +2.d0 to account for H+ consumed in database formulation 
 
-  stoi_dom = 1.d0 
+  stoi_dom = 1.d0 / this%fe_dom_ratio
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
   dG0 = (-612.0d0) ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
