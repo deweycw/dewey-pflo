@@ -421,8 +421,11 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
     Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
     Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
-    Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
-
+    
+    if (this%dom_check) then
+      Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
+    endif 
+    
   else
 
     if (calculate_precip) then
