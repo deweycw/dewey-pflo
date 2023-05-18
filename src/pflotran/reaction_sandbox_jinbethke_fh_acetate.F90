@@ -425,28 +425,28 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     if (this%dom_check) then
       Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
     endif 
-    
-  else
 
-    if (calculate_precip) then
+  !else
+
+  !  if (calculate_precip) then
       
-      Rate = (-1.d0) * sign_ * abs(affinity_factor) * this%rate_precip
+  !    Rate = (-1.d0) * sign_ * abs(affinity_factor) * this%rate_precip
 
       !multiple Rate by 8 for Fe stoichiometry?
-      rt_auxvar%auxiliary_data(iauxiliary) = Rate
+  !    rt_auxvar%auxiliary_data(iauxiliary) = Rate
 
-      Rate = Rate * material_auxvar%volume ! mol/sec
+  !    Rate = Rate * material_auxvar%volume ! mol/sec
         
       ! species-specifc 
-      Rate_O2aq = Rate * (0.0625d0) 
-      Rate_Fe2 = Rate 
-      Rate_Proton = Rate * (2.d0) 
+  !    Rate_O2aq = Rate * (0.0625d0) 
+  !    Rate_Fe2 = Rate 
+  !    Rate_Proton = Rate * (2.d0) 
       !Rate_fim = Rate * yield
       
-      Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
-      Residual(this%o2aq_id) = Residual(this%o2aq_id) + Rate_O2aq
-      Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
-    endif
+  !    Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
+  !    Residual(this%o2aq_id) = Residual(this%o2aq_id) + Rate_O2aq
+  !    Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
+  !  endif
 
   endif
 
