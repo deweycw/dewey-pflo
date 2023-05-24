@@ -189,7 +189,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: Ac, Proton
   PetscReal :: Rate, Rate_Ac, Rate_Proton
   PetscReal :: stoi_ac, stoi_proton
-  PetscReal :: rate, threshold !, km 
+  PetscReal :: threshold, rate_from_user
 
   PetscInt :: jcomp, icomp
   PetscInt :: ncomp, i 
@@ -219,7 +219,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   volume = material_auxvar%volume
   L_water = porosity*liquid_saturation*volume*1.d3
 
-  rate = this%rate
+  rate_from_user = this%rate
   threshold = this%Ct
   !km = this%Km
 
@@ -236,7 +236,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   ! calculate rate if acetate concentration below threshold
   ! negative for dissolution 
   if (Ac < threshold) then
-    Rate = (-1.d0) * rate * ((threshold - Ac) / threshold) 
+    Rate = (-1.d0) * rate_from_user * ((threshold - Ac) / threshold) 
   endif 
 
   ! base rate, mol/sec/m^3 bulk
