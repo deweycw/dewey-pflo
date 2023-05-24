@@ -79,7 +79,7 @@ subroutine SOMAcetateReadInput(this,input,option)
       case('KM')
         call InputReadDouble(input,option,this%Km)
         call InputErrorMsg(input,option,word,error_string)
-      case('ACETATE_THRESHOLD')
+      case('THRESHOLD')
         call InputReadDouble(input,option,this%Ct)
         call InputErrorMsg(input,option,word,error_string)
       case default
@@ -90,7 +90,7 @@ subroutine SOMAcetateReadInput(this,input,option)
   if (Uninitialized(this%rmin) .or. &
       Uninitialized(this%Km) .or. &
       Uninitialized(this%Ct)) then
-    option%io_buffer = 'RMIN, KM, and ACETATE_THRESHOLD must be set for &
+    option%io_buffer = 'RMIN, KM, and THRESHOLD must be set for &
       SOM_ACETATE.'
     call PrintErrMsg(option)
   endif
@@ -139,7 +139,7 @@ subroutine SOMAcetateAuxiliaryPlotVariables(this,list,reaction,option)
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'JB SOM Acetate Sandbox Rate'
+  word = 'SOM Acetate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
