@@ -235,7 +235,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   
   ! calculate rate if acetate concentration above threshold
   ! negative for dissolution 
-  if (Ac > threshold) then
+  if (Ac < threshold) then
     Rate = (-1.d0) * rmin * ( (Ac + km) / (Ac) ) 
   endif 
 
