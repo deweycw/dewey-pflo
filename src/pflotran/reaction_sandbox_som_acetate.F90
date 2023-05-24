@@ -242,17 +242,15 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   ! base rate, mol/sec/m^3 bulk
   ! units on k: mol/sec/mol-bio
 
-   rt_auxvar%auxiliary_data(iauxiliary) = Rate 
+  rt_auxvar%auxiliary_data(iauxiliary) = Rate 
 
-   Rate = Rate * material_auxvar%volume ! mol/sec
+  Rate = Rate * material_auxvar%volume ! mol/sec
     
-   Rate_Ac = Rate * stoi_ac  
-   Rate_Proton = Rate * stoi_proton 
+  Rate_Ac = Rate * stoi_ac  
+  Rate_Proton = Rate * stoi_proton 
 
-   Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
-   Residual(this%acetate_id) = Residual(this%acetate_id) + Rate_Ac
-
-  endif
+  Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
+  Residual(this%acetate_id) = Residual(this%acetate_id) + Rate_Ac  
 
 end subroutine SOMAcetateEvaluate
 ! ************************************************************************** !
