@@ -15,8 +15,8 @@ module Reaction_Sandbox_SOM_Acetate_class
     PetscInt :: ac_id
     PetscInt :: acetate_id
     PetscInt :: mineral_id
-    PetscReal :: rmin
-    PetscReal :: Km
+    PetscReal :: rate
+    !PetscReal :: Km
     PetscReal :: Ct
    
 
@@ -44,8 +44,8 @@ function SOMAcetateCreate()
   SOMAcetateCreate%acetate_id = UNINITIALIZED_INTEGER
   SOMAcetateCreate%mineral_id = UNINITIALIZED_INTEGER
 
-  SOMAcetateCreate%rmin = UNINITIALIZED_DOUBLE
-  SOMAcetateCreate%Km = UNINITIALIZED_DOUBLE
+  SOMAcetateCreate%rate = UNINITIALIZED_DOUBLE
+  !SOMAcetateCreate%Km = UNINITIALIZED_DOUBLE
   SOMAcetateCreate%Ct = UNINITIALIZED_DOUBLE
 
   nullify(SOMAcetateCreate%next)
@@ -73,12 +73,12 @@ subroutine SOMAcetateReadInput(this,input,option)
     call InputErrorMsg(input,option,'keyword',error_string)
     call StringToUpper(word)
     select case(word)
-      case('RMIN')
-        call InputReadDouble(input,option,this%rmin)
+      case('RATE')
+        call InputReadDouble(input,option,this%rate)
         call InputErrorMsg(input,option,word,error_string)
-      case('KM')
-        call InputReadDouble(input,option,this%Km)
-        call InputErrorMsg(input,option,word,error_string)
+      !case('KM')
+      !  call InputReadDouble(input,option,this%Km)
+      !  call InputErrorMsg(input,option,word,error_string)
       case('THRESHOLD')
         call InputReadDouble(input,option,this%Ct)
         call InputErrorMsg(input,option,word,error_string)
@@ -87,10 +87,10 @@ subroutine SOMAcetateReadInput(this,input,option)
     end select
   enddo
   call InputPopBlock(input,option)
-  if (Uninitialized(this%rmin) .or. &
-      Uninitialized(this%Km) .or. &
+  if (Uninitialized(this%rate) .or. &
+      !Uninitialized(this%Km) .or. &
       Uninitialized(this%Ct)) then
-    option%io_buffer = 'RMIN, KM, and THRESHOLD must be set for &
+    option%io_buffer = 'RATE and THRESHOLD must be set for &
       SOM_ACETATE.'
     call PrintErrMsg(option)
   endif
@@ -189,7 +189,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: Ac, Proton
   PetscReal :: Rate, Rate_Ac, Rate_Proton
   PetscReal :: stoi_ac, stoi_proton
-  PetscReal :: rmin, threshold, km 
+  PetscReal :: rate, threshold !, km 
 
   PetscInt :: jcomp, icomp
   PetscInt :: ncomp, i 
@@ -219,9 +219,9 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   volume = material_auxvar%volume
   L_water = porosity*liquid_saturation*volume*1.d3
 
-  rmin = this%rmin
+  rate = this%rate
   threshold = this%Ct
-  km = this%Km
+  !km = this%Km
 
   Ac = rt_auxvar%pri_molal(this%acetate_id) * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
@@ -236,8 +236,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   ! calculate rate if acetate concentration below threshold
   ! negative for dissolution 
   if (Ac < threshold) then
-    Rate = (-1.d0) * rmin * ( (Ac + km) / (Ac) ) * &
-      ((threshold - Ac) / threshold) 
+    Rate = (-1.d0) * rate * ((threshold - Ac) / threshold) 
   endif 
 
   ! base rate, mol/sec/m^3 bulk
