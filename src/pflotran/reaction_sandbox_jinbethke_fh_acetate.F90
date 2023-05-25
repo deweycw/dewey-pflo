@@ -121,7 +121,7 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
       case('K_PRECIPITATION')
         call InputReadDouble(input,option,this%rate_precip)
         call InputErrorMsg(input,option,word,error_string)
-      case('INCLUDE_DOM')
+      case('RELEASE_DOC')
         call InputReadCard(input,option,word)
         call InputErrorMsg(input,option,word,error_string)
         call StringToUpper(word)
@@ -137,9 +137,9 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
           case default
             call InputKeywordUnrecognized(input,word, &
                          trim(error_string)//&
-                         'INCLUDE_DOM',option)
+                         'RELEASE_DOC',option)
         end select
-      case('FE_DOM_RATIO')
+      case('FE_DOC_RATIO')
         call InputReadDouble(input,option,this%fe_dom_ratio)
         call InputErrorMsg(input,option,word,error_string)  
       case default
@@ -194,7 +194,7 @@ subroutine JinBethkeFerrihydriteAcetateSetup(this,reaction,option)
   word = 'O2(aq)'
   this%o2aq_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
-  word = 'DOM-'
+  word = 'DOC-'
   this%domaq_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
   word = 'Ferrihydrite'
