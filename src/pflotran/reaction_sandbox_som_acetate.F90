@@ -253,8 +253,6 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
    Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
    Residual(this%acetate_id) = Residual(this%acetate_id) + Rate_Ac
 
-  endif
-
 end subroutine SOMAcetateEvaluate
 ! ************************************************************************** !
 subroutine SOMAcetateUpdateKineticState(this,rt_auxvar,global_auxvar, &
