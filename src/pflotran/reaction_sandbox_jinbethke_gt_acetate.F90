@@ -382,27 +382,6 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
     Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
     Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
 
-  else
-
-    if (calculate_precip) then
-      
-      Rate = (-1.d0) * sign_ * abs(affinity_factor) * this%r_precip
-
-      !multiple Rate by 8 for Fe stoichiometry?
-      rt_auxvar%auxiliary_data(iauxiliary) = Rate
-
-      Rate = Rate * material_auxvar%volume ! mol/sec
-        
-      ! species-specifc 
-      Rate_O2aq = Rate * (0.0625d0) 
-      Rate_Fe2 = Rate 
-      Rate_Proton = Rate * (2.d0) 
-      
-      Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
-      Residual(this%o2aq_id) = Residual(this%o2aq_id) + Rate_O2aq
-      Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
-    endif
-
   endif
   
 end subroutine JinBethkeGoethiteAcetateEvaluate
