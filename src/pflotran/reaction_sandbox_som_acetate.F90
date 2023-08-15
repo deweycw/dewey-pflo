@@ -82,7 +82,6 @@ subroutine SOMAcetateReadInput(this,input,option)
       case('ACETATE_THRESHOLD')
         call InputReadDouble(input,option,this%Ct)
         call InputErrorMsg(input,option,word,error_string)
-        end select
       case default
         call InputKeywordUnrecognized(input,word,error_string,option)
     end select
