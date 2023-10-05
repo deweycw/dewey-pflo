@@ -109,9 +109,9 @@ subroutine MackinawiteReadInput(this,input,option)
   enddo
   call InputPopBlock(input,option)
   if (Uninitialized(this%precip_rate) .or. &
-      Uninitialized(this%precip_ksp)) .or. &
+      Uninitialized(this%precip_ksp) .or. &
       Uninitialized(this%diss_rate) .or. &
-      Uninitialized(this%diss_ksp)) .or. &
+      Uninitialized(this%diss_ksp) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%k_o2aq)) then
     option%io_buffer = 'RATES, KSPS, THRESHOLDS, O2_HALFSAT must be set for &
@@ -218,7 +218,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
 
   PetscReal :: Fe2, O2aq, sulfate, HS, Proton, K_O2aq
   PetscReal :: Rate, Rate_Fe, Rate_O2aq, Rate_Sulfate
-  PetscReal :: Rate_HS, Rate_Proton
+  PetscReal :: Rate_HS, Rate_Proton, threshold
   PetscReal :: stoi_o2, stoi_fe2, stoi_sulfate
   PetscReal :: stoi_proton, stoi_hs
   PetscReal :: diss_rate_from_user, precip_rate_from_user
