@@ -9,7 +9,7 @@ module Reaction_Sandbox_Mackinawite_class
   private
   type, public, &
     extends(reaction_sandbox_base_type) :: &
-      reaction_sandbox_mackinawite_precip_diss_type
+      reaction_sandbox_mackinawite_type
     PetscInt :: auxiliary_offset
     PetscInt :: fe2_id
     PetscInt :: o2_id
@@ -30,7 +30,7 @@ module Reaction_Sandbox_Mackinawite_class
     procedure, public :: AuxiliaryPlotVariables => MackinawiteAuxiliaryPlotVariables
     procedure, public :: Evaluate => MackinawiteEvaluate
     procedure, public :: UpdateKineticState => MackinawiteUpdateKineticState
-  end type reaction_sandbox_mackinawite_precip_diss_type
+  end type reaction_sandbox_mackinawite_type
 
   public :: MackinawiteCreate, &
             MackinawiteSetup
@@ -40,7 +40,7 @@ function MackinawiteCreate()
   !
   !
   implicit none
-  class(reaction_sandbox_mackinawite_precip_diss_type), pointer :: MackinawiteCreate
+  class(reaction_sandbox_mackinawite_type), pointer :: MackinawiteCreate
   allocate(MackinawiteCreate)
   
   MackinawiteCreate%auxiliary_offset = UNINITIALIZED_INTEGER
@@ -70,7 +70,7 @@ subroutine MackinawiteReadInput(this,input,option)
   use Input_Aux_module
   use String_module
   implicit none
-  class(reaction_sandbox_mackinawite_precip_diss_type) :: this
+  class(reaction_sandbox_mackinawite_type) :: this
   type(input_type), pointer :: input
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
@@ -128,7 +128,7 @@ subroutine MackinawiteSetup(this,reaction,option)
   use Reaction_Mineral_Aux_module, only : GetMineralIDFromName
   use Option_module
   implicit none
-  class(reaction_sandbox_mackinawite_precip_diss_type) :: this
+  class(reaction_sandbox_mackinawite_type) :: this
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
@@ -165,7 +165,7 @@ subroutine MackinawiteAuxiliaryPlotVariables(this,list,reaction,option)
   use Reaction_Aux_module
   use Output_Aux_module
   use Variables_module, only : REACTION_AUXILIARY
-  class(reaction_sandbox_mackinawite_precip_diss_type) :: this
+  class(reaction_sandbox_mackinawite_type) :: this
   type(output_variable_list_type), pointer :: list
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
@@ -197,7 +197,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   use Material_Aux_class
   use Reaction_Mineral_Aux_module
   implicit none
-  class(reaction_sandbox_mackinawite_precip_diss_type) :: this
+  class(reaction_sandbox_mackinawite_type) :: this
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   PetscBool :: compute_derivative
@@ -335,7 +335,7 @@ subroutine MackinawiteUpdateKineticState(this,rt_auxvar,global_auxvar, &
   use Global_Aux_module
   use Material_Aux_class
   implicit none
-  class(reaction_sandbox_mackinawite_precip_diss_type) :: this
+  class(reaction_sandbox_mackinawite_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
   class(material_auxvar_type) :: material_auxvar
