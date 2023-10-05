@@ -812,6 +812,10 @@ reaction_sandbox_som_acetate.o : global_aux.o input_aux.o material_aux.o option.
                             pflotran_constants.o reaction_aux.o \
                             reaction_mineral_aux.o reaction_sandbox_base.o \
                             reactive_transport_aux.o string.o
+reaction_sandbox_mackinawite.o : global_aux.o input_aux.o material_aux.o option.o \
+                            pflotran_constants.o reaction_aux.o \
+                            reaction_mineral_aux.o reaction_sandbox_base.o \
+                            reactive_transport_aux.o string.o
 reaction_sandbox_clm_cn.o : global_aux.o input_aux.o material_aux.o option.o \
                             pflotran_constants.o reaction_aux.o \
                             reaction_immobile_aux.o reaction_sandbox_base.o \
