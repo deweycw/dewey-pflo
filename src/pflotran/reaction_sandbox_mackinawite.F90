@@ -290,7 +290,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   ! base rate, mol/sec/m^3 bulk
   ! units on k: mol/sec/mol-bio
   
-  if ((O2aq <= threshold) .and. (sat_index_diss < 0)) then
+  if ((O2aq >= threshold) .and. (sat_index_diss < 0)) then
     Rate = (-1.d0) * diss_rate_from_user * (O2aq  / (K_O2aq + O2aq)) 
     ! negative for dissolution 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate 
@@ -305,7 +305,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
     Residual(this%o2_id) = Residual(this%o2_id) - Rate_O2aq
     Residual(this%sulfate_id) = Residual(this%sulfate_id) + Rate_Sulfate
 
-  else if ((O2aq > threshold) .and. (sat_index_precip > 0))  then
+  else if ((O2aq < threshold) .and. (sat_index_precip > 0))  then
     Rate = precip_rate_from_user * sat_index_precip
     ! positive for precip 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate 
