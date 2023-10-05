@@ -20,6 +20,7 @@ module Reaction_Sandbox_JinBethke_Sulfate_class
     PetscReal :: rmax
     PetscReal :: Kdonor
     PetscReal :: Kacceptor
+    PetscReal :: Kbisulfide
     PetscReal :: Y
     PetscReal :: m
     PetscReal :: chi
@@ -57,6 +58,7 @@ function JinBethkeSulfateCreate()
   JinBethkeSulfateCreate%rmax = UNINITIALIZED_DOUBLE
   JinBethkeSulfateCreate%Kdonor = UNINITIALIZED_DOUBLE
   JinBethkeSulfateCreate%Kacceptor = UNINITIALIZED_DOUBLE
+  JinBethkeSulfateCreate%Kbisulfide = UNINITIALIZED_DOUBLE
   JinBethkeSulfateCreate%Y = UNINITIALIZED_DOUBLE
   JinBethkeSulfateCreate%m = UNINITIALIZED_DOUBLE
   JinBethkeSulfateCreate%chi = UNINITIALIZED_DOUBLE
@@ -96,6 +98,9 @@ subroutine JinBethkeSulfateReadInput(this,input,option)
       case('K_ACCEPTOR')
         call InputReadDouble(input,option,this%Kacceptor)
         call InputErrorMsg(input,option,word,error_string)
+      case('K_BISULFIDE')
+        call InputReadDouble(input,option,this%Kbisulfide)
+        call InputErrorMsg(input,option,word,error_string)
       case('Y')
         call InputReadDouble(input,option,this%Y)
         call InputErrorMsg(input,option,word,error_string)
@@ -119,7 +124,7 @@ subroutine JinBethkeSulfateReadInput(this,input,option)
       Uninitialized(this%m) .or. &
       Uninitialized(this%chi) .or. &
       Uninitialized(this%Y)) then
-    option%io_buffer = 'RMAX, Kdonor, Kacceptor, m, chi, and Y must be set for &
+    option%io_buffer = 'RMAX, Kdonor, Kacceptor, Kbisulfide, m, chi, and Y must be set for &
       JINBETHKE_SULFATE_ACETATE'
     call PrintErrMsg(option)
   endif
@@ -229,7 +234,7 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   PetscReal :: stoi_hs, stoi_bicarbonate
   PetscReal :: k_rmax, m, chi
   PetscReal :: temp_K, RT
-  PetscReal :: Ft, Ftr, Fdonor, Facceptor
+  PetscReal :: Ft, Ftr, Fdonor, Facceptor, Fbisulfide
   PetscReal :: reaction_Q
   PetscReal :: dG0, dGr, dG_ATP
 
@@ -295,6 +300,9 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   ! Monod expressions for sulfate
   Facceptor = so4 / (so4 + this%Kacceptor)
 
+  ! Monod expressions for bisulfide
+  Fbisulfide = hs / (hs + this%Kbisulfide)
+
   ! Thermodynamic factor 
   Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
 
@@ -313,7 +321,7 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_rmax *  Facceptor * Fdonor * Ftr * Sim  
+    Rate = -k_rmax *  Facceptor * Fdonor * Fbisulfide * Ftr * Sim  
  
     Rate_sulf = Rate
     
