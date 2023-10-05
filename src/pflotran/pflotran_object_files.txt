@@ -144,6 +144,7 @@ chem_obj = \
 	${common_src}reaction_sandbox_fh_gt_mineral_ripening.o \
 	${common_src}reaction_sandbox_dom_carboxyl_phenolic.o \
 	${common_src}reaction_sandbox_som_acetate.o \
+	${common_src}reaction_sandbox_mackinawite.o \
 	${common_src}reaction_sandbox_flexbiohill.o \
 	${common_src}reaction_sandbox_pnnl_cyber.o \
 	${common_src}reaction_sandbox_gas.o \

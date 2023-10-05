@@ -743,6 +743,7 @@ reaction_sandbox.o : global_aux.o input_aux.o material_aux.o option.o \
                      reaction_sandbox_fh_gt_mineral_ripening.o \
                      reaction_sandbox_dom_carboxyl_phenolic.o \
                      reaction_sandbox_som_acetate.o \
+                     reaction_sandbox_mackinawite.o \
                      reaction_sandbox_clm_cn.o reaction_sandbox_example.o \
                      reaction_sandbox_flexbiohill.o reaction_sandbox_gas.o \
                      reaction_sandbox_pnnl_cyber.o reaction_sandbox_simple.o \

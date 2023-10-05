@@ -19,6 +19,7 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_Fh_Gt_Mineral_Ripening_class
   use Reaction_Sandbox_Functionalized_DOM_class
   use Reaction_Sandbox_SOM_Acetate_class
+  use Reaction_Sandbox_Mackinawite_class
   use Reaction_Sandbox_Simple_class
   use Reaction_Sandbox_Cyber_class
   use Reaction_Sandbox_Gas_class
@@ -211,6 +212,8 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => FcnDOMCreate()
       case('SOM_AC_FERMENTATION')
         new_sandbox => SOMAcetateCreate()
+      case('MACKINAWITE_DISS_PRECIP')
+        new_sandbox => MackinawiteCreate()
       case default
         call InputKeywordUnrecognized(input,word, &
                                       'CHEMISTRY,REACTION_SANDBOX',option)
