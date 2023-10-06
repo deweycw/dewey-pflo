@@ -205,8 +205,8 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: L_water              ! L water
 
   PetscReal :: lnQK, QK, affinity_factor, sign_
-  PetscReal :: calculate_precip
-
+  PetscBool :: calculate_precip
+  
   PetscReal :: Fe2, O2aq, sulfate, HS, Proton, K_O2aq
   PetscReal :: Rate, Rate_Fe, Rate_O2aq, Rate_Sulfate
   PetscReal :: Rate_HS, Rate_Proton, threshold
