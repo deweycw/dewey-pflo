@@ -292,7 +292,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   ! units on k: mol/sec/mol-bio
 
 
-  if ((O2aq < threshold) .and. (calculate_precip)  then
+  if ((O2aq < threshold) .and. (calculate_precip))  then
     Rate = precip_rate_from_user 
     ! positive for precip 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate 
