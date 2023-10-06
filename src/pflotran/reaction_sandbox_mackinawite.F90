@@ -308,7 +308,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
     Residual(this%hs_id) = Residual(this%hs_id) + Rate_HS
 
   elseif (O2aq >= threshold) then
-    Rate = (-1.d0) * diss_rate_from_user 
+    Rate = (-1.d0) * diss_rate_from_user * ( O2aq / (k_o2aq + O2aq))
     ! negative for dissolution 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate 
 
