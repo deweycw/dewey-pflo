@@ -17,9 +17,7 @@ module Reaction_Sandbox_Mackinawite_class
     PetscInt :: proton_id
     PetscInt :: hs_id
     PetscInt :: mineral_id
-    PetscReal :: precip_ksp
     PetscReal :: precip_rate
-    PetscReal :: diss_ksp
     PetscReal :: diss_rate
     PetscReal :: k_o2aq
     PetscReal :: o2_threshold
@@ -54,9 +52,7 @@ function MackinawiteCreate()
   MackinawiteCreate%mineral_id = UNINITIALIZED_INTEGER
 
   MackinawiteCreate%precip_rate = UNINITIALIZED_DOUBLE
-  MackinawiteCreate%precip_ksp = UNINITIALIZED_DOUBLE
   MackinawiteCreate%diss_rate = UNINITIALIZED_DOUBLE
-  MackinawiteCreate%diss_ksp = UNINITIALIZED_DOUBLE
 
   MackinawiteCreate%k_o2aq = UNINITIALIZED_DOUBLE
   MackinawiteCreate%o2_threshold = UNINITIALIZED_DOUBLE
@@ -85,16 +81,10 @@ subroutine MackinawiteReadInput(this,input,option)
     call InputErrorMsg(input,option,'keyword',error_string)
     call StringToUpper(word)
     select case(word)
-      case('PRECIP_KSP')
-        call InputReadDouble(input,option,this%precip_ksp)
-        call InputErrorMsg(input,option,word,error_string)
       case('PRECIP_RATE')
         call InputReadDouble(input,option,this%precip_rate)
         call InputErrorMsg(input,option,word,error_string)
-      case('DISS_KSP')
-        call InputReadDouble(input,option,this%diss_ksp)
-        call InputErrorMsg(input,option,word,error_string)
-      case('DISS_RATE')
+      case('DISSOLUTION_RATE')
         call InputReadDouble(input,option,this%diss_rate)
         call InputErrorMsg(input,option,word,error_string)
       case('O2_THRESHOLD_M')
@@ -109,12 +99,10 @@ subroutine MackinawiteReadInput(this,input,option)
   enddo
   call InputPopBlock(input,option)
   if (Uninitialized(this%precip_rate) .or. &
-      Uninitialized(this%precip_ksp) .or. &
       Uninitialized(this%diss_rate) .or. &
-      Uninitialized(this%diss_ksp) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%k_o2aq)) then
-    option%io_buffer = 'RATES, KSPS, THRESHOLDS, O2_HALFSAT must be set for &
+    option%io_buffer = 'RATES, THRESHOLDS, O2_HALFSAT must be set for &
       MACKINAWITE DISSOLUTION/PRECIP.'
     call PrintErrMsg(option)
   endif
@@ -216,15 +204,15 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: ln_act(reaction%ncomp)
   PetscReal :: L_water              ! L water
 
+  PetscReal :: lnQK, QK, affinity_factor, sign_
+  PetscReal :: calculate_precip
+
   PetscReal :: Fe2, O2aq, sulfate, HS, Proton, K_O2aq
   PetscReal :: Rate, Rate_Fe, Rate_O2aq, Rate_Sulfate
   PetscReal :: Rate_HS, Rate_Proton, threshold
   PetscReal :: stoi_o2, stoi_fe2, stoi_sulfate
   PetscReal :: stoi_proton, stoi_hs
   PetscReal :: diss_rate_from_user, precip_rate_from_user
-  PetscReal :: diss_ksp, precip_ksp
-  PetscReal :: diss_Q, precip_Q
-  PetscReal :: sat_index_diss, sat_index_precip
 
   PetscInt :: jcomp, icomp
   PetscInt :: ncomp, i 
@@ -254,10 +242,29 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   volume = material_auxvar%volume
   L_water = porosity*liquid_saturation*volume*1.d3
 
+  ! TST for precipitation; uses pkeq from database
+  lnQK = -mineral%kinmnrl_logK(imnrl)*LOG_TO_LN
+
+  if (mineral%kinmnrlh2oid(imnrl) > 0) then
+    lnQK = lnQK + mineral%kinmnrlh2ostoich(imnrl)* &
+                  rt_auxvar%ln_act_h2o
+  endif
+
+  ! activity of other species
+  ncomp = mineral%kinmnrlspecid(0,imnrl)
+  do i = 1, ncomp
+    icomp = mineral%kinmnrlspecid(i,imnrl)
+    lnQK = lnQK + mineral%kinmnrlstoich(i,imnrl)*ln_act(icomp)
+  enddo
+
+  QK = exp(lnQK)
+  affinity_factor = 1.d0-QK
+  sign_ = sign(1.d0,affinity_factor)
+
+  calculate_precip = (sign_<0)
+
   precip_rate_from_user = this%precip_rate
   diss_rate_from_user = this%diss_rate
-  precip_ksp = this%precip_ksp
-  diss_ksp = this%diss_ksp
   K_O2aq = this%k_o2aq
   threshold = this%o2_threshold
 
@@ -278,35 +285,15 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   stoi_proton = 1.d0
   stoi_hs = 1.d0
 
-  diss_Q = ((sulfate**stoi_sulfate) * (Fe2**stoi_fe2) ) / &
-    (O2aq**stoi_o2)
-  sat_index_diss = log(diss_Q / diss_ksp)
-
-  precip_Q = ((HS ** stoi_hs) * (Fe2 ** stoi_fe2))/(Proton ** stoi_proton)
-  sat_index_precip = log(precip_Q / precip_ksp)
 
   Rate = 0.d0 
 
   ! base rate, mol/sec/m^3 bulk
   ! units on k: mol/sec/mol-bio
-  
-  if ((O2aq >= threshold) .and. (sat_index_diss < 0)) then
-    Rate = (-1.d0) * diss_rate_from_user * (O2aq  / (K_O2aq + O2aq)) 
-    ! negative for dissolution 
-    rt_auxvar%auxiliary_data(iauxiliary) = Rate 
 
-    Rate = Rate * material_auxvar%volume ! mol/sec
-      
-    Rate_Fe = Rate * stoi_fe2  
-    Rate_Sulfate = Rate * stoi_sulfate
-    Rate_O2aq = Rate * stoi_o2
 
-    Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe
-    Residual(this%o2_id) = Residual(this%o2_id) - Rate_O2aq
-    Residual(this%sulfate_id) = Residual(this%sulfate_id) + Rate_Sulfate
-
-  else if ((O2aq < threshold) .and. (sat_index_precip > 0))  then
-    Rate = precip_rate_from_user * sat_index_precip
+  if ((O2aq < threshold) .and. (calculate_precip)  then
+    Rate = precip_rate_from_user 
     ! positive for precip 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate 
 
@@ -320,6 +307,20 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
     Residual(this%proton_id) = Residual(this%proton_id) - Rate_Proton
     Residual(this%hs_id) = Residual(this%hs_id) + Rate_HS
 
+  elseif (O2aq >= threshold) then
+    Rate = (-1.d0) * diss_rate_from_user 
+    ! negative for dissolution 
+    rt_auxvar%auxiliary_data(iauxiliary) = Rate 
+
+    Rate = Rate * material_auxvar%volume ! mol/sec
+      
+    Rate_Fe = Rate * stoi_fe2  
+    Rate_Sulfate = Rate * stoi_sulfate
+    Rate_O2aq = Rate * stoi_o2
+
+    Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe
+    Residual(this%o2_id) = Residual(this%o2_id) - Rate_O2aq
+    Residual(this%sulfate_id) = Residual(this%sulfate_id) + Rate_Sulfate
   endif
 end subroutine MackinawiteEvaluate
 ! ************************************************************************** !
