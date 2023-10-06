@@ -21,6 +21,9 @@ module Reaction_Sandbox_Mackinawite_class
     PetscReal :: diss_rate
     PetscReal :: k_o2aq
     PetscReal :: o2_threshold
+    PetscReal :: km_fe_precip
+    PetscReal :: km_hs_precip
+  
 
   contains
     procedure, public :: ReadInput => MackinawiteReadInput
@@ -53,6 +56,8 @@ function MackinawiteCreate()
 
   MackinawiteCreate%precip_rate = UNINITIALIZED_DOUBLE
   MackinawiteCreate%diss_rate = UNINITIALIZED_DOUBLE
+  MackinawiteCreate%km_fe_precip = UNINITIALIZED_DOUBLE
+  MackinawiteCreate%km_hs_precip = UNINITIALIZED_DOUBLE
 
   MackinawiteCreate%k_o2aq = UNINITIALIZED_DOUBLE
   MackinawiteCreate%o2_threshold = UNINITIALIZED_DOUBLE
@@ -84,9 +89,15 @@ subroutine MackinawiteReadInput(this,input,option)
       case('PRECIP_RATE')
         call InputReadDouble(input,option,this%precip_rate)
         call InputErrorMsg(input,option,word,error_string)
-      case('DISSOLUTION_RATE')
+      case('DSLN_RATE')
         call InputReadDouble(input,option,this%diss_rate)
         call InputErrorMsg(input,option,word,error_string)
+      case('HALF_SAT_FE')
+        call InputReadDouble(input,option,this%km_fe_precip)
+        call InputErrorMsg(input,option,word,error_string)
+      case('HALF_SAT_HS')
+        call InputReadDouble(input,option,this%km_hs_precip)
+        call InputErrorMsg(input,option,word,error_string)        
       case('O2_THRESHOLD_M')
         call InputReadDouble(input,option,this%o2_threshold)
         call InputErrorMsg(input,option,word,error_string)
@@ -211,7 +222,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: Rate, Rate_Fe, Rate_O2aq, Rate_Sulfate
   PetscReal :: Rate_HS, Rate_Proton, threshold
   PetscReal :: stoi_o2, stoi_fe2, stoi_sulfate
-  PetscReal :: stoi_proton, stoi_hs
+  PetscReal :: stoi_proton, stoi_hs, km_fe_precip, km_hs_precip
   PetscReal :: diss_rate_from_user, precip_rate_from_user
 
   PetscInt :: jcomp, icomp
@@ -285,6 +296,8 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
   stoi_proton = 1.d0
   stoi_hs = 1.d0
 
+  km_fe_precip = this%km_fe_precip
+  km_hs_precip = this%km_hs_precip
 
   Rate = 0.d0 
 
@@ -293,7 +306,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
 
 
   if ((O2aq < threshold) .and. (calculate_precip))  then
-    Rate = precip_rate_from_user 
+    Rate = precip_rate_from_user * ( HS / (km_hs_precip + HS) ) * ( Fe / (km_fe_precip + Fe2) ) 
     ! positive for precip 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate 
 
