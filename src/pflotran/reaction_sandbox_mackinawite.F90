@@ -23,7 +23,7 @@ module Reaction_Sandbox_Mackinawite_class
     PetscReal :: o2_threshold
     PetscReal :: km_fe_precip
     PetscReal :: km_hs_precip
-  
+
 
   contains
     procedure, public :: ReadInput => MackinawiteReadInput
@@ -306,7 +306,7 @@ subroutine MackinawiteEvaluate(this, Residual,Jacobian,compute_derivative, &
 
 
   if ((O2aq < threshold) .and. (calculate_precip))  then
-    Rate = precip_rate_from_user * ( HS / (km_hs_precip + HS) ) * ( Fe / (km_fe_precip + Fe2) ) 
+    Rate = precip_rate_from_user * ( HS / (km_hs_precip + HS) ) * ( Fe2 / (km_fe_precip + Fe2) ) 
     ! positive for precip 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate 
 
