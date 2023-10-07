@@ -16,7 +16,7 @@ module Reaction_Sandbox_SOM_Acetate_class
     PetscInt :: acetate_id
     PetscInt :: mineral_id
     PetscReal :: rate
-    PetscReal :: Km
+    !PetscReal :: Km
     PetscReal :: Ct
    
 
@@ -45,7 +45,7 @@ function SOMAcetateCreate()
   SOMAcetateCreate%mineral_id = UNINITIALIZED_INTEGER
 
   SOMAcetateCreate%rate = UNINITIALIZED_DOUBLE
-  SOMAcetateCreate%Km = UNINITIALIZED_DOUBLE
+  !SOMAcetateCreate%Km = UNINITIALIZED_DOUBLE
   SOMAcetateCreate%Ct = UNINITIALIZED_DOUBLE
 
   nullify(SOMAcetateCreate%next)
@@ -76,9 +76,9 @@ subroutine SOMAcetateReadInput(this,input,option)
       case('RATE')
         call InputReadDouble(input,option,this%rate)
         call InputErrorMsg(input,option,word,error_string)
-      case('INVERSE_KM')
-        call InputReadDouble(input,option,this%Km)
-        call InputErrorMsg(input,option,word,error_string)
+      !case('KM')
+      !  call InputReadDouble(input,option,this%Km)
+      !  call InputErrorMsg(input,option,word,error_string)
       case('THRESHOLD')
         call InputReadDouble(input,option,this%Ct)
         call InputErrorMsg(input,option,word,error_string)
@@ -88,9 +88,9 @@ subroutine SOMAcetateReadInput(this,input,option)
   enddo
   call InputPopBlock(input,option)
   if (Uninitialized(this%rate) .or. &
-      Uninitialized(this%Km) .or. &
+      !Uninitialized(this%Km) .or. &
       Uninitialized(this%Ct)) then
-    option%io_buffer = 'RATE, KM_INVERSE, and THRESHOLD must be set for &
+    option%io_buffer = 'RATE and THRESHOLD must be set for &
       SOM_ACETATE.'
     call PrintErrMsg(option)
   endif
@@ -189,7 +189,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: Ac, Proton
   PetscReal :: Rate, Rate_Ac, Rate_Proton
   PetscReal :: stoi_ac, stoi_proton
-  PetscReal :: threshold, rate_from_user, km
+  PetscReal :: threshold, rate_from_user
 
   PetscInt :: jcomp, icomp
   PetscInt :: ncomp, i 
@@ -221,7 +221,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
 
   rate_from_user = this%rate
   threshold = this%Ct
-  km = this%Km
+  !km = this%Km
 
   Ac = rt_auxvar%pri_molal(this%acetate_id) * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
@@ -236,7 +236,7 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   ! calculate rate if acetate concentration below threshold
   ! negative for dissolution 
   if (Ac < threshold) then
-    Rate = (-1.d0) * rate_from_user * (( km - Ac) / km) 
+    Rate = (-1.d0) * rate_from_user * ((threshold - Ac) / threshold) 
   endif 
 
   ! base rate, mol/sec/m^3 bulk
