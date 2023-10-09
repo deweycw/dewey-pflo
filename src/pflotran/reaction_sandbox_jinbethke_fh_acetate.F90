@@ -273,7 +273,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
   PetscReal :: stoi_ac, stoi_proton
   PetscReal :: stoi_fe2, stoi_bicarbonate
-  PetscReal :: stoi_dom, Rate_Dom
+  PetscReal :: stoi_dom, Rate_Dom, srfcplx_DOM
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fa, Ff
@@ -332,6 +332,8 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
 
   DOMaq = rt_auxvar%pri_molal(this%domaq_id) * &
     rt_auxvar%pri_act_coef(this%domaq_id)
+
+  srfcplx_DOM = rt_auxvar%eqsrfcplx_conc
 
   fim = rt_auxvar%immobile(this%fim_id)
 
@@ -423,7 +425,13 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
     
     if (this%dom_check) then
+      
       Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
+
+      if (rt_auxvar%eqsrfcplx_conc > 0) then
+        Residual(rt_auxvar%eqsrfcplx_conc) = Residual(rt_auxvar%eqsrfcplx_conc) - Rate_Dom
+      endif
+
     endif 
 
   !else
