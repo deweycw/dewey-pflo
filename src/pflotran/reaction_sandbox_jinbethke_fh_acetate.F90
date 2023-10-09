@@ -182,7 +182,6 @@ subroutine JinBethkeFerrihydriteAcetateSetup(this,reaction,option)
   ! the offset points this sandbox to the correct entry for storing the rate
   this%auxiliary_offset = reaction%nauxiliary
   reaction%nauxiliary = reaction%nauxiliary + 1
-  this%surface_complexation = reaction%surface_complexation
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
