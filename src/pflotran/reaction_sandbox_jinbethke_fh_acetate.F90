@@ -484,7 +484,7 @@ subroutine JinBethkeFerrihydriteAcetateUpdateKineticState(this,rt_auxvar,global_
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   PetscInt :: imnrl, ieqrxn
-  PetscReal :: delta_volfrac, prec_dom
+  PetscReal :: delta_volfrac, perc_dom
   imnrl = this%mineral_id
   ieqrxn = 1
   ! rate = mol/m^3/sec
