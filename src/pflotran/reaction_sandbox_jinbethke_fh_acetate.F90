@@ -410,7 +410,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
 
     Rate = -k_diss *  Fa * Ftr * Ff * fim  
 
-    Rate_fh = Rate
+    Rate_fh = Rate * 8.d0  ! molar vol is for Fe(OH)3, however 8 Fe(OH)3 are consumed in rxn 
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_fh
 
@@ -483,7 +483,7 @@ subroutine JinBethkeFerrihydriteAcetateUpdateKineticState(this,rt_auxvar,global_
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   PetscInt :: imnrl !, ieqrxn
-  PetscReal :: delta_volfrac, perc_dom
+  PetscReal :: delta_volfrac
   imnrl = this%mineral_id
   !ieqrxn = 1
   ! rate = mol/m^3/sec
