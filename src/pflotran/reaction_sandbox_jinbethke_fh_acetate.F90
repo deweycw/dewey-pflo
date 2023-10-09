@@ -252,6 +252,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   use Global_Aux_module
   use Material_Aux_class
   use Reaction_Mineral_Aux_module
+  use Reaction_Surface_Complexation_Aux_module
   implicit none
   class(reaction_sandbox_jinbethke_ferrihydrite_acetate_type) :: this
   type(option_type) :: option
