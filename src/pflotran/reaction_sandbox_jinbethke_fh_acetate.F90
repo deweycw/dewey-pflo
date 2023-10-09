@@ -29,6 +29,7 @@ module Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
     PetscReal :: o2_threshold
     PetscBool :: dom_check
     PetscReal :: fe_dom_ratio
+    PetscReal :: perc_dom
     
 
   contains
@@ -70,6 +71,7 @@ function JinBethkeFerrihydriteAcetateCreate()
 
   JinBethkeFerrihydriteAcetateCreate%dom_check = PETSC_FALSE
   JinBethkeFerrihydriteAcetateCreate%fe_dom_ratio = UNINITIALIZED_DOUBLE
+  JinBethkeFerrihydriteAcetateCreate%perc_dom = UNINITIALIZED_DOUBLE
 
   nullify(JinBethkeFerrihydriteAcetateCreate%next)
 end function JinBethkeFerrihydriteAcetateCreate
@@ -141,6 +143,9 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
         end select
       case('FE_DOC_RATIO')
         call InputReadDouble(input,option,this%fe_dom_ratio)
+        call InputErrorMsg(input,option,word,error_string)  
+      case('FE_OC_PERCENT')
+        call InputReadDouble(input,option,this%perc_dom)
         call InputErrorMsg(input,option,word,error_string)  
       case default
         call InputKeywordUnrecognized(input,word,error_string,option)
@@ -256,6 +261,8 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
+  type(surface_complexation_type), pointer :: surface_complexation
+
   class(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
   type(mineral_type), pointer :: mineral
@@ -284,7 +291,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
 
   PetscInt :: jcomp, icomp
   PetscInt :: ncomp, i 
-  PetscInt :: imnrl
+  PetscInt :: imnrl, ieqrxn
   PetscInt :: iauxiliary
   PetscBool :: calculate_dissolution
   PetscBool :: calculate_precip
@@ -299,6 +306,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   ln_act = ln_conc+log(rt_auxvar%pri_act_coef)
 
   imnrl = this%mineral_id
+  ieqrxn = 1
 
   if (dabs(rt_auxvar%mnrl_rate(imnrl)) > 1.d-40) then
     option%io_buffer = 'For JINBETHKE_FERRIHYDRITE_ACETATE to function correctly, &
@@ -333,7 +341,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   DOMaq = rt_auxvar%pri_molal(this%domaq_id) * &
     rt_auxvar%pri_act_coef(this%domaq_id)
 
-  srfcplx_DOM = rt_auxvar%eqsrfcplx_conc
+  srfcplx_DOM = rt_auxvar%eqsrfcplx_conc(ieqrxn)
 
   fim = rt_auxvar%immobile(this%fim_id)
 
@@ -428,10 +436,6 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
       
       Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
 
-      if (rt_auxvar%eqsrfcplx_conc > 0) then
-        Residual(rt_auxvar%eqsrfcplx_conc) = Residual(rt_auxvar%eqsrfcplx_conc) - Rate_Dom
-      endif
-
     endif 
 
   !else
@@ -475,21 +479,28 @@ subroutine JinBethkeFerrihydriteAcetateUpdateKineticState(this,rt_auxvar,global_
   class(reaction_sandbox_jinbethke_ferrihydrite_acetate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
+
   class(material_auxvar_type) :: material_auxvar
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
-  PetscInt :: imnrl
-  PetscReal :: delta_volfrac
+  PetscInt :: imnrl, ieqrxn
+  PetscReal :: delta_volfrac, prec_dom
   imnrl = this%mineral_id
+  ieqrxn = 1
   ! rate = mol/m^3/sec
   ! dvolfrac = m^3 mnrl/m^3 bulk = rate (mol mnrl/m^3 bulk/sec) *
   !                                mol_vol (m^3 mnrl/mol mnrl)
   delta_volfrac = rt_auxvar%auxiliary_data(this%auxiliary_offset+1)* &
                   reaction%mineral%kinmnrl_molar_vol(imnrl)* &
                   option%tran_dt
+
+  perc_dom = this%perc_dom
   ! m^3 mnrl/m^3 bulk
   rt_auxvar%mnrl_volfrac(imnrl) = rt_auxvar%mnrl_volfrac(imnrl) + &
                                   delta_volfrac
+
+  rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) + &
+                                  (delta_volfrac * perc_dom)
   ! zero to avoid negative volume fractions
   if (rt_auxvar%mnrl_volfrac(imnrl) < 0.d0) &
     rt_auxvar%mnrl_volfrac(imnrl) = 0.d0
