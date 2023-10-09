@@ -153,14 +153,13 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
   enddo
   call InputPopBlock(input,option)
   if (Uninitialized(this%rmax) .or. &
-      Uninitialized(this%rate_precip) .or. &
       Uninitialized(this%Kdonor) .or. &
       Uninitialized(this%Kacceptor) .or. &
       Uninitialized(this%Y) .or. &
       Uninitialized(this%m) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'RMAX, K_PRECIPITATION, K_DONOR, K_ACCEPTOR, Y, M, CHI, and O2_THRESHOLD must be set for &
+    option%io_buffer = 'RMAX, K_DONOR, K_ACCEPTOR, Y, M, CHI, and O2_THRESHOLD must be set for &
       JINBETHKE_FERRIHYDRITE_ACETATE.'
     call PrintErrMsg(option)
   endif
@@ -183,6 +182,7 @@ subroutine JinBethkeFerrihydriteAcetateSetup(this,reaction,option)
   ! the offset points this sandbox to the correct entry for storing the rate
   this%auxiliary_offset = reaction%nauxiliary
   reaction%nauxiliary = reaction%nauxiliary + 1
+  this%surface_complexation = reaction%surface_complexation
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
@@ -262,7 +262,6 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  type(surface_complexation_type), pointer :: surface_complexation
 
   class(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
@@ -281,7 +280,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
   PetscReal :: stoi_ac, stoi_proton
   PetscReal :: stoi_fe2, stoi_bicarbonate
-  PetscReal :: stoi_dom, Rate_Dom, srfcplx_DOM
+  PetscReal :: stoi_dom, Rate_Dom
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fa, Ff
@@ -307,7 +306,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   ln_act = ln_conc+log(rt_auxvar%pri_act_coef)
 
   imnrl = this%mineral_id
-  ieqrxn = 1
+  ieqrxn = 1  ! for eq surface complex >FeO_DOC; assumes this is the only surface complex in model
 
   if (dabs(rt_auxvar%mnrl_rate(imnrl)) > 1.d-40) then
     option%io_buffer = 'For JINBETHKE_FERRIHYDRITE_ACETATE to function correctly, &
@@ -341,8 +340,6 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
 
   DOMaq = rt_auxvar%pri_molal(this%domaq_id) * &
     rt_auxvar%pri_act_coef(this%domaq_id)
-
-  srfcplx_DOM = rt_auxvar%eqsrfcplx_conc(ieqrxn)
 
   fim = rt_auxvar%immobile(this%fim_id)
 
@@ -437,6 +434,8 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
       
       Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
 
+      rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) - Rate_Dom
+
     endif 
 
   !else
@@ -484,10 +483,10 @@ subroutine JinBethkeFerrihydriteAcetateUpdateKineticState(this,rt_auxvar,global_
   class(material_auxvar_type) :: material_auxvar
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
-  PetscInt :: imnrl, ieqrxn
+  PetscInt :: imnrl !, ieqrxn
   PetscReal :: delta_volfrac, perc_dom
   imnrl = this%mineral_id
-  ieqrxn = 1
+  !ieqrxn = 1
   ! rate = mol/m^3/sec
   ! dvolfrac = m^3 mnrl/m^3 bulk = rate (mol mnrl/m^3 bulk/sec) *
   !                                mol_vol (m^3 mnrl/mol mnrl)
@@ -500,8 +499,8 @@ subroutine JinBethkeFerrihydriteAcetateUpdateKineticState(this,rt_auxvar,global_
   rt_auxvar%mnrl_volfrac(imnrl) = rt_auxvar%mnrl_volfrac(imnrl) + &
                                   delta_volfrac
 
-  rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) + &
-                                  (delta_volfrac * perc_dom)
+  !rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) + &
+  !                                (delta_volfrac * perc_dom)
   ! zero to avoid negative volume fractions
   if (rt_auxvar%mnrl_volfrac(imnrl) < 0.d0) &
     rt_auxvar%mnrl_volfrac(imnrl) = 0.d0
