@@ -141,7 +141,7 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
                          trim(error_string)//&
                          'RELEASE_DOC',option)
         end select
-      case('FE_DOC_RATIO')
+      case('DOC_TO_FE_RATIO')
         call InputReadDouble(input,option,this%fe_dom_ratio)
         call InputErrorMsg(input,option,word,error_string)  
       case('FE_OC_PERCENT')
@@ -351,7 +351,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   stoi_ac = 1.d0
   stoi_proton = 15.d0 !+ 2.d0  ! +2.d0 to account for H+ consumed in database formulation 
 
-  stoi_dom = 1.d0 / this%fe_dom_ratio
+  stoi_dom = this%fe_dom_ratio
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
   dG0 = (-612.0d0) ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
@@ -433,7 +433,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
       
       Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
 
-      rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) - Rate_Dom
+      !rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) + Rate_Dom
 
     endif 
 
@@ -493,7 +493,6 @@ subroutine JinBethkeFerrihydriteAcetateUpdateKineticState(this,rt_auxvar,global_
                   reaction%mineral%kinmnrl_molar_vol(imnrl)* &
                   option%tran_dt
 
-  perc_dom = this%perc_dom
   ! m^3 mnrl/m^3 bulk
   rt_auxvar%mnrl_volfrac(imnrl) = rt_auxvar%mnrl_volfrac(imnrl) + &
                                   delta_volfrac
