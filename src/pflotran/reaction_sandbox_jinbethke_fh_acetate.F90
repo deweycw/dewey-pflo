@@ -326,18 +326,18 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   ! Rxn:    1.00 Ac- + 8.00 FHY + 15.00 H+ = 8.00 Fe++ + 2.00 HCO3- + 20.00 H2O 
   ! dG0 =   -612.0 kJ per mol Ac-, Kocar & Fendorf 2009
 
-  Ac = rt_auxvar%pri_molal(this%acetate_id) * &
+  Ac = rt_auxvar%pri_molal(this%acetate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
-  Proton = rt_auxvar%pri_molal(this%h_ion_id) * &
+  Proton = rt_auxvar%pri_molal(this%h_ion_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%h_ion_id) 
-  Fe2 = rt_auxvar%pri_molal(this%fe2_id) * &
+  Fe2 = rt_auxvar%pri_molal(this%fe2_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%fe2_id) 
-  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * &
+  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%bicarbonate_id) 
-  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * &
+  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%o2aq_id) 
 
-  DOMaq = rt_auxvar%pri_molal(this%domaq_id) * &
+  DOMaq = rt_auxvar%pri_molal(this%domaq_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%domaq_id)
 
   fim = rt_auxvar%immobile(this%fim_id)

@@ -177,7 +177,7 @@ subroutine JinBethkeSulfateAuxiliaryPlotVariables(this,list,reaction,option)
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'JB Sulfafte Acetate Sandbox Rate'
+  word = 'JB Sulfate Acetate Sandbox Rate'
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
@@ -256,17 +256,17 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   ! Rxn:    1.00 Ac- + 1.00 SO4-- = 1.00 HS- + 2.00 HCO3- 
   ! dG0 =   -48.1 kJ per mol Ac-, Kocar & Fendorf 2009
 
-  Ac = rt_auxvar%pri_molal(this%acetate_id) * &
+  Ac = rt_auxvar%pri_molal(this%acetate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
   so4 = rt_auxvar%pri_molal(this%so4_id) * &
     rt_auxvar%pri_act_coef(this%so4_id) 
   
-  hs = rt_auxvar%pri_molal(this%hs_id) * &
+  hs = rt_auxvar%pri_molal(this%hs_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%hs_id) 
-  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * &
+  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%bicarbonate_id) 
 
-  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * &
+  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%o2aq_id) 
 
   Sim = rt_auxvar%immobile(this%sim_id)

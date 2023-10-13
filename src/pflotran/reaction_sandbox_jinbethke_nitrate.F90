@@ -259,17 +259,17 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
   ! Rxn:    1.00 Ac- + 1.60 NO3- + 0.60 H+ = 0.80 N2(aq) + 2.00 HCO3- + 0.80 H2O 
   ! dG0 =   -816.034 kJ per mol Ac-, from Gf0 values, Stumm & Morgan; Kocar & Fendorf 2009 
 
-  Ac = rt_auxvar%pri_molal(this%acetate_id) * &
+  Ac = rt_auxvar%pri_molal(this%acetate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
-  Proton = rt_auxvar%pri_molal(this%h_ion_id) * &
+  Proton = rt_auxvar%pri_molal(this%h_ion_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%h_ion_id) 
   no3 = rt_auxvar%pri_molal(this%no3_id) * &
     rt_auxvar%pri_act_coef(this%no3_id) 
-  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * &
+  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%bicarbonate_id) 
-  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * &
+  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%o2aq_id) 
-  n2aq = rt_auxvar%pri_molal(this%n2aq_id) * &
+  n2aq = rt_auxvar%pri_molal(this%n2aq_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%n2aq_id) 
 
   Nim = rt_auxvar%immobile(this%nim_id)
