@@ -298,7 +298,7 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   ! Thermodynamic factor 
   Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
 
-  if (Ft <= 0.d0) then 
+  if (Ft < 0) then 
     Ftr = 0.d0
   else
     Ftr = Ft
