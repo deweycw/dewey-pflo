@@ -380,13 +380,13 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_gt
 
-    Rate = Rate * material_auxvar%volume ! mol/sec
+    Rate = Rate * material_auxvar%volume * L_water ! mol/sec
       
     ! species-specifc 
-    Rate_Ac = Rate * stoi_ac * L_water 
-    Rate_Proton = Rate * stoi_proton * L_water
-    Rate_Fe2 = Rate * stoi_fe2 * L_water
-    Rate_Bicarbonate = Rate * stoi_bicarbonate * L_water
+    Rate_Ac = Rate * stoi_ac  
+    Rate_Proton = Rate * stoi_proton
+    Rate_Fe2 = Rate * stoi_fe2
+    Rate_Bicarbonate = Rate * stoi_bicarbonate
     !Rate_Fim = Rate * yield
     
     Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
