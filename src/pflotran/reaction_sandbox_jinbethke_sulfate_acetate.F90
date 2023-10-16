@@ -190,7 +190,7 @@ subroutine JinBethkeSulfateAuxiliaryPlotVariables(this,list,reaction,option)
                                 this%auxiliary_offset+2)
 
   word = 'Ft_Sulfate_Acetate Sandbox'
-  units = ''
+  units = 'unitless'
   call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+3)
@@ -246,10 +246,12 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
 
   PetscInt :: jcomp, icomp
   PetscInt :: ncomp, i 
-  PetscInt :: iauxiliary
+  PetscInt :: iauxiliary, iauxiliary2, iauxiliary3
   PetscBool :: calculate_rate
 
   iauxiliary = this%auxiliary_offset + 1
+  iauxiliary = this%auxiliary_offset + 2
+  iauxiliary = this%auxiliary_offset + 3
 
   volume = material_auxvar%volume        ! den_kg [kg fluid / m^3 fluid]
   molality_to_molarity = global_auxvar%den_kg(iphase)*1.d-3  ! kg water/L water
@@ -329,8 +331,8 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
     Rate_sulf = Rate_b
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_sulf
-    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
-    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
+    rt_auxvar%auxiliary_data(iauxiliary2) = dGr
+    rt_auxvar%auxiliary_data(iauxiliary3) = Ft
 
     Rate = Rate_b  ! mol/sec
       
