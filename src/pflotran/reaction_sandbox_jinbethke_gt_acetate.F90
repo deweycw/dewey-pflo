@@ -285,16 +285,28 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
   ! Rxn:    1.00 Ac- + 8.00 Gt + 15.00 H+ = 8.00 Fe++ + 2.00 HCO3- + 12.00 H2O 
   ! dG0 =   -464.2 kJ per mol Ac-, Kocar & Fendorf 2009
 
-  Ac = rt_auxvar%pri_molal(this%acetate_id) * molality_to_molarity * &
+  !Ac = rt_auxvar%pri_molal(this%acetate_id) * molality_to_molarity * &
+  !  rt_auxvar%pri_act_coef(this%acetate_id) 
+  !Proton = rt_auxvar%pri_molal(this%h_ion_id) * molality_to_molarity * &
+  !  rt_auxvar%pri_act_coef(this%h_ion_id) 
+  !Fe2 = rt_auxvar%pri_molal(this%fe2_id) * molality_to_molarity * &
+  !  rt_auxvar%pri_act_coef(this%fe2_id) 
+  !Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * molality_to_molarity * &
+  !  rt_auxvar%pri_act_coef(this%bicarbonate_id) 
+  !O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
+  !  rt_auxvar%pri_act_coef(this%o2aq_id) 
+
+  Ac = rt_auxvar%pri_molal(this%acetate_id) * &
     rt_auxvar%pri_act_coef(this%acetate_id) 
-  Proton = rt_auxvar%pri_molal(this%h_ion_id) * molality_to_molarity * &
+  Proton = rt_auxvar%pri_molal(this%h_ion_id) * &
     rt_auxvar%pri_act_coef(this%h_ion_id) 
-  Fe2 = rt_auxvar%pri_molal(this%fe2_id) * molality_to_molarity * &
+  Fe2 = rt_auxvar%pri_molal(this%fe2_id) * &
     rt_auxvar%pri_act_coef(this%fe2_id) 
-  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * molality_to_molarity * &
+  Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * &
     rt_auxvar%pri_act_coef(this%bicarbonate_id) 
-  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
+  O2aq = rt_auxvar%pri_molal(this%o2aq_id) * &
     rt_auxvar%pri_act_coef(this%o2aq_id) 
+
 
   Fim = rt_auxvar%immobile(this%fim_id)
 
@@ -362,7 +374,7 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_diss *  Fa * Ftr * Ff * Fim  
+    Rate = -k_diss *  Fa * Ftr * Ff * Fim
     
     Rate_gt = Rate
 
@@ -371,10 +383,10 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
     Rate = Rate * material_auxvar%volume ! mol/sec
       
     ! species-specifc 
-    Rate_Ac = Rate * stoi_ac  
-    Rate_Proton = Rate * stoi_proton 
-    Rate_Fe2 = Rate * stoi_fe2 
-    Rate_Bicarbonate = Rate * stoi_bicarbonate 
+    Rate_Ac = Rate * stoi_ac * L_water 
+    Rate_Proton = Rate * stoi_proton * L_water
+    Rate_Fe2 = Rate * stoi_fe2 * L_water
+    Rate_Bicarbonate = Rate * stoi_bicarbonate * L_water
     !Rate_Fim = Rate * yield
     
     Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
