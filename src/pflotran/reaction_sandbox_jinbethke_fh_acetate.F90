@@ -229,18 +229,6 @@ subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
-
-  word = 'dG-rxn_Fh_Acetate Sandbox'
-  units = 'kJ/mol-Ac'
-  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
-                                REACTION_AUXILIARY, &
-                                this%auxiliary_offset+2)
-
-  word = 'Ft_Fh_Acetate Sandbox'
-  units = ''
-  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
-                                REACTION_AUXILIARY, &
-                                this%auxiliary_offset+3)  
 end subroutine FerrihydriteAuxiliaryPlotVariables
 ! ************************************************************************** !
 subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
@@ -431,8 +419,6 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     !Rate_fim = Rate * yield
 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_Ac
-    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
-    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
     
     Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
     Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac

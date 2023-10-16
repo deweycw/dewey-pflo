@@ -1,4 +1,4 @@
-module Reaction_Sandbox_JinBethke_Sulfate_class
+module Reaction_Sandbox_Sulfate_Acetate_DGR_class
 #include "petsc/finclude/petscsys.h"
   use petscsys
   use Reaction_Sandbox_Base_class
@@ -9,7 +9,7 @@ module Reaction_Sandbox_JinBethke_Sulfate_class
   private
   type, public, &
     extends(reaction_sandbox_base_type) :: &
-      reaction_sandbox_jinbethke_sulfate_type
+      reaction_sandbox_sulfate_acetate_dgr_type
     PetscInt :: auxiliary_offset
     PetscInt :: so4_id
     PetscInt :: acetate_id
@@ -26,53 +26,53 @@ module Reaction_Sandbox_JinBethke_Sulfate_class
     PetscReal :: o2_threshold
 
   contains
-    procedure, public :: ReadInput => JinBethkeSulfateReadInput
-    procedure, public :: Setup => JinBethkeSulfateSetup
-    procedure, public :: AuxiliaryPlotVariables => JinBethkeSulfateAuxiliaryPlotVariables
-    procedure, public :: Evaluate => JinBethkeSulfateEvaluate
-  end type reaction_sandbox_jinbethke_sulfate_type
+    procedure, public :: ReadInput => SulfAcDGRReadInput
+    procedure, public :: Setup => SulfAcDGRSetup
+    procedure, public :: AuxiliaryPlotVariables => SulfAcDGRAuxiliaryPlotVariables
+    procedure, public :: Evaluate => SulfAcDGREvaluate
+  end type reaction_sandbox_sulfate_acetate_dgr_type
 
-  public :: JinBethkeSulfateCreate, &
-            JinBethkeSulfateSetup
+  public :: SulfAcDGRCreate, &
+            SulfAcDGRSetup
 contains
 ! ************************************************************************** !
-function JinBethkeSulfateCreate()
+function SulfAcDGRCreate()
   !
-  ! Allocates JinBethkeSulfate reaction object.
+  ! Allocates SulfAcDGR reaction object.
   !
   implicit none
-  class(reaction_sandbox_jinbethke_sulfate_type), pointer :: JinBethkeSulfateCreate
-  allocate(JinBethkeSulfateCreate)
-  JinBethkeSulfateCreate%auxiliary_offset = UNINITIALIZED_INTEGER
+  class(reaction_sandbox_sulfate_acetate_dgr_type), pointer :: SulfAcDGRCreate
+  allocate(SulfAcDGRCreate)
+  SulfAcDGRCreate%auxiliary_offset = UNINITIALIZED_INTEGER
   ! reactants
-  JinBethkeSulfateCreate%so4_id = UNINITIALIZED_INTEGER
-  JinBethkeSulfateCreate%acetate_id = UNINITIALIZED_INTEGER
+  SulfAcDGRCreate%so4_id = UNINITIALIZED_INTEGER
+  SulfAcDGRCreate%acetate_id = UNINITIALIZED_INTEGER
   ! products
-  JinBethkeSulfateCreate%bicarbonate_id = UNINITIALIZED_INTEGER
-  JinBethkeSulfateCreate%hs_id = UNINITIALIZED_INTEGER
+  SulfAcDGRCreate%bicarbonate_id = UNINITIALIZED_INTEGER
+  SulfAcDGRCreate%hs_id = UNINITIALIZED_INTEGER
 
-  JinBethkeSulfateCreate%o2aq_id = UNINITIALIZED_INTEGER
-  JinBethkeSulfateCreate%sim_id = UNINITIALIZED_INTEGER
+  SulfAcDGRCreate%o2aq_id = UNINITIALIZED_INTEGER
+  SulfAcDGRCreate%sim_id = UNINITIALIZED_INTEGER
 
-  JinBethkeSulfateCreate%rmax = UNINITIALIZED_DOUBLE
-  JinBethkeSulfateCreate%Kdonor = UNINITIALIZED_DOUBLE
-  JinBethkeSulfateCreate%Kacceptor = UNINITIALIZED_DOUBLE
-  JinBethkeSulfateCreate%Y = UNINITIALIZED_DOUBLE
-  JinBethkeSulfateCreate%m = UNINITIALIZED_DOUBLE
-  JinBethkeSulfateCreate%chi = UNINITIALIZED_DOUBLE
-  JinBethkeSulfateCreate%o2_threshold = UNINITIALIZED_DOUBLE
+  SulfAcDGRCreate%rmax = UNINITIALIZED_DOUBLE
+  SulfAcDGRCreate%Kdonor = UNINITIALIZED_DOUBLE
+  SulfAcDGRCreate%Kacceptor = UNINITIALIZED_DOUBLE
+  SulfAcDGRCreate%Y = UNINITIALIZED_DOUBLE
+  SulfAcDGRCreate%m = UNINITIALIZED_DOUBLE
+  SulfAcDGRCreate%chi = UNINITIALIZED_DOUBLE
+  SulfAcDGRCreate%o2_threshold = UNINITIALIZED_DOUBLE
 
-  nullify(JinBethkeSulfateCreate%next)
-end function JinBethkeSulfateCreate
+  nullify(SulfAcDGRCreate%next)
+end function SulfAcDGRCreate
 ! ************************************************************************** !
-subroutine JinBethkeSulfateReadInput(this,input,option)
+subroutine SulfAcDGRReadInput(this,input,option)
   !
   !
   use Option_module
   use Input_Aux_module
   use String_module
   implicit none
-  class(reaction_sandbox_jinbethke_sulfate_type) :: this
+  class(reaction_sandbox_sulfate_acetate_dgr_type) :: this
   type(input_type), pointer :: input
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
@@ -123,9 +123,9 @@ subroutine JinBethkeSulfateReadInput(this,input,option)
       JINBETHKE_SULFATE_ACETATE'
     call PrintErrMsg(option)
   endif
-end subroutine JinBethkeSulfateReadInput
+end subroutine SulfAcDGRReadInput
 ! ************************************************************************** !
-subroutine JinBethkeSulfateSetup(this,reaction,option)
+subroutine SulfAcDGRSetup(this,reaction,option)
   !
   ! Sets up the calcite reaction with hardwired parameters
   !
@@ -133,14 +133,14 @@ subroutine JinBethkeSulfateSetup(this,reaction,option)
   use Reaction_Immobile_Aux_module, only: GetImmobileSpeciesIDFromName
   use Option_module
   implicit none
-  class(reaction_sandbox_jinbethke_sulfate_type) :: this
+  class(reaction_sandbox_sulfate_acetate_dgr_type) :: this
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   character(len=MAXWORDLENGTH) :: word
   ! rt_auxvar%auxiliary_data(:) is allocated to reaction%nauxiliary
   ! the offset points this sandbox to the correct entry for storing the rate
   this%auxiliary_offset = reaction%nauxiliary
-  reaction%nauxiliary = reaction%nauxiliary + 3
+  reaction%nauxiliary = reaction%nauxiliary + 1
   ! Aqueous species
   word = 'HS-'
   this%hs_id = &
@@ -157,13 +157,11 @@ subroutine JinBethkeSulfateSetup(this,reaction,option)
   word = 'O2(aq)'
   this%o2aq_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
-  word = 'Sim'
-  this%sim_id = &
-    GetImmobileSpeciesIDFromName(word,reaction%immobile,option)
 
-end subroutine JinBethkeSulfateSetup
+
+end subroutine SulfAcDGRSetup
 ! ************************************************************************** !
-subroutine JinBethkeSulfateAuxiliaryPlotVariables(this,list,reaction,option)
+subroutine SulfAcDGRAuxiliaryPlotVariables(this,list,reaction,option)
   !
   ! Adds sulfate reduction auxiliary plot variables to output list
   !
@@ -171,32 +169,23 @@ subroutine JinBethkeSulfateAuxiliaryPlotVariables(this,list,reaction,option)
   use Reaction_Aux_module
   use Output_Aux_module
   use Variables_module, only : REACTION_AUXILIARY
-  class(reaction_sandbox_jinbethke_sulfate_type) :: this
+  class(reaction_sandbox_sulfate_acetate_dgr_type) :: this
   type(output_variable_list_type), pointer :: list
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
-  word = 'JB Sulfate Acetate Sandbox Rate'
-  units = 'mol/m^3-sec'
-  call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
-                                REACTION_AUXILIARY, &
-                                this%auxiliary_offset+1)
+
 
   word = 'dG-rxn_Sulfate_Acetate Sandbox Generic'
   units = 'kJ/mol-Ac'
   call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
                                 REACTION_AUXILIARY, &
-                                this%auxiliary_offset+2)
+                                this%auxiliary_offset+1)
 
-  word = 'Ft_Sulfate_Acetate Sandbox Generic'
-  units = 'unitless'
-  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
-                                REACTION_AUXILIARY, &
-                                this%auxiliary_offset+3)
-end subroutine JinBethkeSulfateAuxiliaryPlotVariables
+end subroutine SulfAcDGRAuxiliaryPlotVariables
 ! ************************************************************************** !
-subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, &
+subroutine SulfAcDGREvaluate(this, Residual,Jacobian,compute_derivative, &
                            rt_auxvar,global_auxvar,material_auxvar, &
                            reaction,option)
   ! 
@@ -214,7 +203,7 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   use Global_Aux_module
   use Material_Aux_class
   implicit none
-  class(reaction_sandbox_jinbethke_sulfate_type) :: this
+  class(reaction_sandbox_sulfate_acetate_dgr_type) :: this
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   PetscBool :: compute_derivative
@@ -224,23 +213,16 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   type(global_auxvar_type) :: global_auxvar
   class(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
-  PetscReal :: volume               ! [m^3 bulk volume]
-  PetscReal :: porosity             ! m^3 pore space / m^3 bulk
-  PetscReal :: liquid_saturation
   PetscReal :: molality_to_molarity ! [kg water / L water]
   PetscReal :: ln_conc(reaction%ncomp)
   PetscReal :: ln_act(reaction%ncomp)
-  PetscReal :: L_water              ! L water
 
   PetscReal :: Ac, hs, so4, Bicarbonate
   PetscReal :: Sim, yield, O2aq
-  PetscReal :: Rate, Rate_Ac, Rate_hs, Rate_so4, Rate_sulf
-  PetscReal :: Rate_Bicarbonate, Rate_b
+
   PetscReal :: stoi_ac, stoi_so4
   PetscReal :: stoi_hs, stoi_bicarbonate
-  PetscReal :: k_rmax, m, chi
-  PetscReal :: temp_K, RT
-  PetscReal :: Ft, Ftr, Fdonor, Facceptor
+  PetscReal :: RT
   PetscReal :: reaction_Q
   PetscReal :: dG0, dGr, dG_ATP
 
@@ -251,18 +233,10 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
 
   iauxiliary = this%auxiliary_offset + 1
 
-  volume = material_auxvar%volume        ! den_kg [kg fluid / m^3 fluid]
   molality_to_molarity = global_auxvar%den_kg(iphase)*1.d-3  ! kg water/L water
 
   ln_conc = log(rt_auxvar%pri_molal)
   ln_act = ln_conc+log(rt_auxvar%pri_act_coef)
-
-  porosity = material_auxvar%porosity
-  liquid_saturation = global_auxvar%sat(iphase)
-  volume = material_auxvar%volume
-  L_water = porosity*liquid_saturation*volume*1.d3
-
-  k_rmax = this%rmax
 
   ! Rxn:    1.00 Ac- + 1.00 SO4-- = 1.00 HS- + 2.00 HCO3- 
   ! dG0 =   -47.64 kJ per mol Ac-, Kocar & Fendorf 2009
@@ -280,11 +254,6 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%o2aq_id) 
 
-  Sim = rt_auxvar%immobile(this%sim_id)
-
-  m = this%m
-  chi = this%chi
-
   stoi_ac = 1.d0
   stoi_so4 = 1.d0
 
@@ -300,53 +269,19 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
 
   dGr = dG0 + RT*log(reaction_Q)
   
-  ! Monod expressions for acetate
-  Fdonor = Ac / (Ac + this%Kdonor)
-
-  ! Monod expressions for sulfate
-  Facceptor = so4 / (so4 + this%Kacceptor)
-
-  ! Thermodynamic factor 
-  Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
-
-  if (Ft < 0) then 
-    Ftr = 0.d0
-  else
-    Ftr = Ft
-  endif
-
   ! only sulfate reduction if O2(aq) below threhsold
   calculate_rate = O2aq < (this%o2_threshold)
-
-  Rate = 0.d0
   
   if (calculate_rate) then
-    ! base rate, mol/sec/m^3 bulk
-    ! units on k: mol/sec/mol-bio
-
-    Rate_b = -k_rmax *  Facceptor * Fdonor * Ftr * Sim * L_water
- 
-    Rate_sulf = Rate_b
     
-    rt_auxvar%auxiliary_data(iauxiliary) = Rate_sulf
-    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
-    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
-    Rate = Rate_b  ! mol/sec
-      
-    ! species-specifc 
-    Rate_Ac = Rate * stoi_ac  
-    Rate_so4 = Rate * stoi_so4 
-    Rate_hs = Rate * stoi_hs 
-    Rate_Bicarbonate = Rate * stoi_bicarbonate 
-    !Rate_Nim = Rate * yield
-    
-    Residual(this%so4_id) = Residual(this%so4_id) - Rate_so4
-    Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
-    Residual(this%hs_id) = Residual(this%hs_id) + Rate_hs
-    Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
+    rt_auxvar%auxiliary_data(iauxiliary) = dGr
 
+  else
+    
+    rt_auxvar%auxiliary_data(iauxiliary) = 1000.d0
+  
   endif
  
-end subroutine JinBethkeSulfateEvaluate
+end subroutine SulfAcDGREvaluate
 
-end module Reaction_Sandbox_JinBethke_Sulfate_class
+end module Reaction_Sandbox_sulfate_acetate_dgr_class

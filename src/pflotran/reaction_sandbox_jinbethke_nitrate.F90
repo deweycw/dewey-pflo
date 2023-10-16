@@ -183,19 +183,7 @@ subroutine JinBethkeNitrateAuxiliaryPlotVariables(this,list,reaction,option)
   units = 'mol/m^3-sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
-                                this%auxiliary_offset+1)
-                                
-  word = 'dG-rxn_Nitrate_Acetate Sandbox'
-  units = 'kJ/mol-Ac'
-  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
-                                REACTION_AUXILIARY, &
-                                this%auxiliary_offset+2)
-
-  word = 'Ft_Nitrate_Acetate Sandbox'
-  units = ''
-  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
-                                REACTION_AUXILIARY, &
-                                this%auxiliary_offset+3)  
+                                this%auxiliary_offset+1) 
 end subroutine JinBethkeNitrateAuxiliaryPlotVariables
 ! ************************************************************************** !
 subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, &
@@ -274,7 +262,7 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
     rt_auxvar%pri_act_coef(this%acetate_id) 
   Proton = rt_auxvar%pri_molal(this%h_ion_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%h_ion_id) 
-  no3 = rt_auxvar%pri_molal(this%no3_id) * &
+  no3 = rt_auxvar%pri_molal(this%no3_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%no3_id) 
   Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%bicarbonate_id) 
@@ -334,8 +322,6 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
     Rate_den = Rate_b
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_den
-    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
-    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
 
     Rate = Rate_b  ! mol/sec
       
