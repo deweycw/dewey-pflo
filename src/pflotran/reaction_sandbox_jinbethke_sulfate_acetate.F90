@@ -182,7 +182,18 @@ subroutine JinBethkeSulfateAuxiliaryPlotVariables(this,list,reaction,option)
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
-  
+
+  word = 'dG-rxn_Sulfate_Acetate Sandbox'
+  units = 'kJ/mol-Ac'
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+2)
+
+  word = 'Ft_Sulfate_Acetate Sandbox'
+  units = ''
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+3)
 end subroutine JinBethkeSulfateAuxiliaryPlotVariables
 ! ************************************************************************** !
 subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, &
