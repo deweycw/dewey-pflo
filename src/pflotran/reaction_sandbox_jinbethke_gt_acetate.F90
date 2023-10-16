@@ -149,7 +149,7 @@ subroutine JinBethkeGoethiteAcetateSetup(this,reaction,option)
   ! rt_auxvar%auxiliary_data(:) is allocated to reaction%nauxiliary
   ! the offset points this sandbox to the correct entry for storing the rate
   this%auxiliary_offset = reaction%nauxiliary
-  reaction%nauxiliary = reaction%nauxiliary + 1
+  reaction%nauxiliary = reaction%nauxiliary + 3
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
@@ -194,6 +194,17 @@ subroutine JinBethkeGoethiteAcetateAuxiliaryPlotVariables(this,list,reaction,opt
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
+  word = 'dG-rxn_Gt_Acetate Sandbox Generic'
+  units = 'kJ/mol-Ac'
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+2)
+
+  word = 'Ft_Gt_Acetate Sandbox Generic'
+  units = 'unitless'
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+3)
 end subroutine JinBethkeGoethiteAcetateAuxiliaryPlotVariables
 ! ************************************************************************** !
 subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
@@ -373,6 +384,8 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
     !Rate_Fim = Rate * yield
 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_Ac
+    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
     
     Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
     Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac

@@ -139,7 +139,7 @@ subroutine JinBethkeNitrateSetup(this,reaction,option)
   ! rt_auxvar%auxiliary_data(:) is allocated to reaction%nauxiliary
   ! the offset points this sandbox to the correct entry for storing the rate
   this%auxiliary_offset = reaction%nauxiliary
-  reaction%nauxiliary = reaction%nauxiliary + 1
+  reaction%nauxiliary = reaction%nauxiliary + 3
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
@@ -184,6 +184,17 @@ subroutine JinBethkeNitrateAuxiliaryPlotVariables(this,list,reaction,option)
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1) 
+  word = 'dG-rxn_Nitrate_Acetate Sandbox Generic'
+  units = 'kJ/mol-Ac'
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+2)
+
+  word = 'Ft_Nitrate_Acetate Sandbox Generic'
+  units = 'unitless'
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+3)
 end subroutine JinBethkeNitrateAuxiliaryPlotVariables
 ! ************************************************************************** !
 subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, &
@@ -322,6 +333,8 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
     Rate_den = Rate_b
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_den
+    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
 
     Rate = Rate_b  ! mol/sec
       
