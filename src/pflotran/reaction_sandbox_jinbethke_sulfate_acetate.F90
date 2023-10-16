@@ -313,13 +313,13 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_rmax *  Facceptor * Fdonor * Ftr * Sim  
+    Rate_b = -k_rmax *  Facceptor * Fdonor * Ftr * Sim  
  
-    Rate_sulf = Rate
+    Rate_sulf = Rate_b
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_sulf
 
-    Rate = Rate * material_auxvar%volume ! mol/sec
+    Rate = Rate_b * L_water ! mol/sec
       
     ! species-specifc 
     Rate_Ac = Rate * stoi_ac  

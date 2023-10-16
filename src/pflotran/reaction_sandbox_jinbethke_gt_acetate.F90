@@ -374,13 +374,13 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_diss *  Fa * Ftr * Ff * Fim
+    Rate_b = -k_diss *  Fa * Ftr * Ff * Fim
     
-    Rate_gt = Rate
+    Rate_gt = Rate_b
 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_gt
 
-    Rate = Rate * material_auxvar%volume * L_water ! mol/sec
+    Rate = Rate_b * L_water ! mol/sec
       
     ! species-specifc 
     Rate_Ac = Rate * stoi_ac  

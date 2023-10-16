@@ -318,13 +318,13 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_rmax *  Facceptor * Fdonor * Ftr * Nim  
+    Rate_b = -k_rmax *  Facceptor * Fdonor * Ftr * Nim  
  
-    Rate_den = Rate
+    Rate_den = Rate_b
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_den
 
-    Rate = Rate * material_auxvar%volume ! mol/sec
+    Rate = Rate_b * L_water ! mol/sec
       
     ! species-specifc 
     Rate_Ac = Rate * stoi_ac  

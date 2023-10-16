@@ -409,13 +409,13 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate = -k_diss *  Fa * Ftr * Ff * fim  
+    Rate_b = -k_diss *  Fa * Ftr * Ff * fim  
 
-    Rate_fh = Rate * 8.d0  ! molar vol is for Fe(OH)3, however 8 Fe(OH)3 are consumed in rxn 
+    Rate_fh = Rate_b * 8.d0  ! molar vol is for Fe(OH)3, however 8 Fe(OH)3 are consumed in rxn 
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_fh
 
-    Rate = Rate * material_auxvar%volume ! mol/sec
+    Rate = Rate_b * L_water  ! mol/sec
       
     ! species-specifc 
     Rate_Ac = Rate * stoi_ac  
