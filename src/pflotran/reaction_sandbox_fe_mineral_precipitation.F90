@@ -192,6 +192,13 @@ subroutine FeMineralPrecipitationEvaluate(this, Residual,Jacobian,compute_deriva
   
   imnrl = this%mineral_id
 
+  if (dabs(rt_auxvar%mnrl_rate(imnrl)) > 1.d-40) then
+    option%io_buffer = 'For Fe(OH)3 mineral precip to function correctly, &
+      &the Fe(OH)3 RATE_CONSTANT in the default MINERAL_KINETICS block must be set &
+      &to zero.'
+    call PrintErrMsg(option)
+  endif
+  
   porosity = material_auxvar%porosity
   liquid_saturation = global_auxvar%sat(iphase)
   volume = material_auxvar%volume
