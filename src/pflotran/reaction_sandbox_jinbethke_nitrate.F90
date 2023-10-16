@@ -184,7 +184,18 @@ subroutine JinBethkeNitrateAuxiliaryPlotVariables(this,list,reaction,option)
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
-  
+                                
+  word = 'dG-rxn_Nitrate_Acetate Sandbox'
+  units = 'kJ/mol-Ac'
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+2)
+
+  word = 'Ft_Nitrate_Acetate Sandbox'
+  units = ''
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+3)  
 end subroutine JinBethkeNitrateAuxiliaryPlotVariables
 ! ************************************************************************** !
 subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, &
@@ -318,13 +329,15 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio
 
-    Rate_b = -k_rmax *  Facceptor * Fdonor * Ftr * Nim  
+    Rate_b = -k_rmax *  Facceptor * Fdonor * Ftr * Nim * L_water
  
     Rate_den = Rate_b
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_den
+    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
 
-    Rate = Rate_b * L_water ! mol/sec
+    Rate = Rate_b  ! mol/sec
       
     ! species-specifc 
     Rate_Ac = Rate * stoi_ac  

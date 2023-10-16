@@ -229,7 +229,18 @@ subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
-  
+
+  word = 'dG-rxn_Fh_Acetate Sandbox'
+  units = 'kJ/mol-Ac'
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+2)
+
+  word = 'Ft_Fh_Acetate Sandbox'
+  units = ''
+  call OutputVariableAddToList(list,word,OUTPUT_GENERIC,units, &
+                                REACTION_AUXILIARY, &
+                                this%auxiliary_offset+3)  
 end subroutine FerrihydriteAuxiliaryPlotVariables
 ! ************************************************************************** !
 subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
@@ -410,13 +421,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     ! units on k: mol/sec/mol-bio
 
     Rate_b = -k_diss *  Fa * Ftr * Ff * fim  
-
-    Rate_fh = Rate_b * 8.d0  ! molar vol is for Fe(OH)3, however 8 Fe(OH)3 are consumed in rxn 
-    
-    rt_auxvar%auxiliary_data(iauxiliary) = Rate_fh
-
     Rate = Rate_b * L_water  ! mol/sec
-      
     ! species-specifc 
     Rate_Ac = Rate * stoi_ac  
     Rate_Proton = Rate * stoi_proton 
@@ -424,6 +429,10 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     Rate_Bicarbonate = Rate * stoi_bicarbonate 
     Rate_Dom = Rate * stoi_dom
     !Rate_fim = Rate * yield
+
+    rt_auxvar%auxiliary_data(iauxiliary) = Rate_Ac
+    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
     
     Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
     Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
@@ -437,28 +446,6 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
       !rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) + Rate_Dom
 
     endif 
-
-  !else
-
-  !  if (calculate_precip) then
-      
-  !    Rate = (-1.d0) * sign_ * abs(affinity_factor) * this%rate_precip
-
-      !multiple Rate by 8 for Fe stoichiometry?
-  !    rt_auxvar%auxiliary_data(iauxiliary) = Rate
-
-  !    Rate = Rate * material_auxvar%volume ! mol/sec
-        
-      ! species-specifc 
-  !    Rate_O2aq = Rate * (0.0625d0) 
-  !    Rate_Fe2 = Rate 
-  !    Rate_Proton = Rate * (2.d0) 
-      !Rate_fim = Rate * yield
-      
-  !    Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
-  !    Residual(this%o2aq_id) = Residual(this%o2aq_id) + Rate_O2aq
-  !    Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
-  !  endif
 
   endif
 
@@ -484,13 +471,23 @@ subroutine JinBethkeFerrihydriteAcetateUpdateKineticState(this,rt_auxvar,global_
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   PetscInt :: imnrl !, ieqrxn
+  PetscInt, parameter :: iphase = 1
+  PetscReal :: porosity, liquid_saturation, volume, L_water
   PetscReal :: delta_volfrac
+
   imnrl = this%mineral_id
+  
+  porosity = material_auxvar%porosity
+  liquid_saturation = global_auxvar%sat(iphase)
+  volume = material_auxvar%volume
+  L_water = porosity*liquid_saturation*volume*1.d3
+
   !ieqrxn = 1
   ! rate = mol/m^3/sec
   ! dvolfrac = m^3 mnrl/m^3 bulk = rate (mol mnrl/m^3 bulk/sec) *
   !                                mol_vol (m^3 mnrl/mol mnrl)
-  delta_volfrac = rt_auxvar%auxiliary_data(this%auxiliary_offset+1)* &
+  delta_volfrac = rt_auxvar%auxiliary_data(this%auxiliary_offset+1)*  &
+                  8.d0 * (1.d0 / L_water) * &
                   reaction%mineral%kinmnrl_molar_vol(imnrl)* &
                   option%tran_dt
 
