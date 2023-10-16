@@ -328,7 +328,9 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
  
     Rate_sulf = Rate_b
     
-    rt_auxvar%auxiliary_data(iauxiliary) = dGr !Rate_sulf
+    rt_auxvar%auxiliary_data(iauxiliary) = Rate_sulf
+    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
 
     Rate = Rate_b  ! mol/sec
       
