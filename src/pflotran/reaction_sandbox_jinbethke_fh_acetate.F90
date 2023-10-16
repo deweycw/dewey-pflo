@@ -277,7 +277,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: fim, yield, O2aq, DOMaq
   PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_fh
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
-  PetscReal :: stoi_ac, stoi_proton
+  PetscReal :: stoi_ac, stoi_proton, Rate_b
   PetscReal :: stoi_fe2, stoi_bicarbonate
   PetscReal :: stoi_dom, Rate_Dom
   PetscReal :: k_diss, k_precip, m, chi

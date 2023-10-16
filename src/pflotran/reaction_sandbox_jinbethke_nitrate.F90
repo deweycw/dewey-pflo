@@ -224,7 +224,7 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
   PetscReal :: L_water              ! L water
 
   PetscReal :: Ac, Proton, no3, Bicarbonate
-  PetscReal :: Nim, yield, O2aq, n2aq
+  PetscReal :: Nim, yield, O2aq, n2aq, Rate_b
   PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_n2aq
   PetscReal :: Rate_no3, Rate_Bicarbonate, Rate_den
   PetscReal :: stoi_ac, stoi_proton, stoi_n2aq

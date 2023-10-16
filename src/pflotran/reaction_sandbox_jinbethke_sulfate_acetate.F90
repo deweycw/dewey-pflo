@@ -224,7 +224,7 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   PetscReal :: Ac, hs, so4, Bicarbonate
   PetscReal :: Sim, yield, O2aq
   PetscReal :: Rate, Rate_Ac, Rate_hs, Rate_so4, Rate_sulf
-  PetscReal :: Rate_Bicarbonate
+  PetscReal :: Rate_Bicarbonate, Rate_b
   PetscReal :: stoi_ac, stoi_so4
   PetscReal :: stoi_hs, stoi_bicarbonate
   PetscReal :: k_rmax, m, chi

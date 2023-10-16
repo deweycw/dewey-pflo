@@ -239,7 +239,7 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
   PetscReal :: Fim, yield, O2aq
   PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_gt
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
-  PetscReal :: stoi_ac, stoi_proton
+  PetscReal :: stoi_ac, stoi_proton, Rate_b
   PetscReal :: stoi_fe2, stoi_bicarbonate
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
