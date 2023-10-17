@@ -385,7 +385,7 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_Ac
     rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
-    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ftr
     
     Residual(this%h_ion_id) = Residual(this%h_ion_id) - Rate_Proton
     Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac

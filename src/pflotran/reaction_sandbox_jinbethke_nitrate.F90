@@ -334,7 +334,7 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
     
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_den
     rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
-    rt_auxvar%auxiliary_data(iauxiliary+2) = Ft
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ftr
 
     Rate = Rate_b  ! mol/sec
       
