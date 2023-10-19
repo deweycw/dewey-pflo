@@ -17,7 +17,7 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_Fe_Mineral_Precipitation_class
   use Reaction_Sandbox_Fe_Fh_Mineral_Ripening_class
   use Reaction_Sandbox_Fh_Gt_Mineral_Ripening_class
-  use Reaction_Sandbox_Functionalized_DOM_class
+  use Reaction_Sandbox_Reaction_Sandbox_JinBethke_O2aq_DOC_class
   use Reaction_Sandbox_SOM_Acetate_class
   use Reaction_Sandbox_Mackinawite_class
   use Reaction_Sandbox_Simple_class
@@ -208,8 +208,8 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => FeFhMineralRipeningCreate()
       case('FH_GT_MINERAL_RIPENING')
         new_sandbox => FhGtMineralRipeningCreate()
-      case('FUNCTIONALIZED_DOM')
-        new_sandbox => FcnDOMCreate()
+      case('JINBETHKE_O2_DOC')
+        new_sandbox => JinBethkeO2aqDOCCreate()
       case('SOM_AC_FERMENTATION')
         new_sandbox => SOMAcetateCreate()
       case('MACKINAWITE_DISS_PRECIP')

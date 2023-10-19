@@ -178,7 +178,7 @@ subroutine JinBethkeSulfateAuxiliaryPlotVariables(this,list,reaction,option)
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
   word = 'JB Sulfate Acetate Sandbox Rate'
-  units = 'mol/m^3-sec'
+  units = 'mol-Ac/sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
@@ -234,7 +234,7 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
 
   PetscReal :: Ac, hs, so4, Bicarbonate
   PetscReal :: Sim, yield, O2aq
-  PetscReal :: Rate, Rate_Ac, Rate_hs, Rate_so4, Rate_sulf
+  PetscReal :: Rate, Rate_Ac, Rate_hs, Rate_so4
   PetscReal :: Rate_Bicarbonate, Rate_b
   PetscReal :: stoi_ac, stoi_so4
   PetscReal :: stoi_hs, stoi_bicarbonate
@@ -325,12 +325,6 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
     ! units on k: mol/sec/mol-bio
 
     Rate_b = -k_rmax *  Facceptor * Fdonor * Ftr * Sim * L_water
- 
-    Rate_sulf = Rate_b
-    
-    rt_auxvar%auxiliary_data(iauxiliary) = Rate_sulf
-    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
-    rt_auxvar%auxiliary_data(iauxiliary+2) = Ftr
     Rate = Rate_b  ! mol/sec
       
     ! species-specifc 
@@ -340,6 +334,11 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
     Rate_Bicarbonate = Rate * stoi_bicarbonate 
     !Rate_Nim = Rate * yield
     
+        
+    rt_auxvar%auxiliary_data(iauxiliary) = Rate_Ac
+    rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
+    rt_auxvar%auxiliary_data(iauxiliary+2) = Ftr
+
     Residual(this%so4_id) = Residual(this%so4_id) - Rate_so4
     Residual(this%acetate_id) = Residual(this%acetate_id) - Rate_Ac
     Residual(this%hs_id) = Residual(this%hs_id) + Rate_hs

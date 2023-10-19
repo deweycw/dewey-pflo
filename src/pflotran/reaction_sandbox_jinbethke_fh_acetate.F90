@@ -225,7 +225,7 @@ subroutine FerrihydriteAuxiliaryPlotVariables(this,list,reaction,option)
   character(len=MAXWORDLENGTH) :: word
   character(len=MAXWORDLENGTH) :: units
   word = 'JB Fh Acetate Sandbox Rate'
-  units = 'mol/m^3-sec'
+  units = 'mol-Ac/sec'
   call OutputVariableAddToList(list,word,OUTPUT_RATE,units, &
                                 REACTION_AUXILIARY, &
                                 this%auxiliary_offset+1)
