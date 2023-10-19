@@ -89,7 +89,7 @@ subroutine JinBethkeO2aqDOCReadInput(this,input,option)
       case('RMAX')
         call InputReadDouble(input,option,this%rmax)
         call InputErrorMsg(input,option,word,error_string)
-      case('dG0')
+      case('DG0')
         call InputReadDouble(input,option,this%dg0)
         call InputErrorMsg(input,option,word,error_string)
       case('K_DONOR')
@@ -123,7 +123,7 @@ subroutine JinBethkeO2aqDOCReadInput(this,input,option)
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%dg0) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'RMAX, K_DONOR, K_ACCEPTOR, Y, M, CHI, dG0, and O2_THRESHOLD must be set for &
+    option%io_buffer = 'RMAX, K_DONOR, K_ACCEPTOR, Y, M, CHI, DG0, and O2_THRESHOLD must be set for &
       JINBETHKE_O2AQ_DOC.'
     call PrintErrMsg(option)
   endif
