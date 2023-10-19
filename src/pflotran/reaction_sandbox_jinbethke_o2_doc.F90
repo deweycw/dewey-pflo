@@ -236,7 +236,7 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
   PetscReal :: Bicarbonate, Xim, yield, O2aq, DOC, Proton
   PetscReal :: Rate, Rate_DOC, Rate_Bicarbonate, Rate_O2aq, Rate_Proton
   PetscReal :: stoi_doc, stoi_bicarbonate, stoi_o2aq, stoi_proton
-  PetscReal :: m, chi
+  PetscReal :: m, chi, k_rmax
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fdonor, Facceptor
   PetscReal :: reaction_Q
@@ -246,6 +246,8 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
   PetscInt :: ncomp, i 
   PetscInt :: imnrl
   PetscInt :: iauxiliary
+
+  PetscBool :: calculate_rate
 
   iauxiliary = this%auxiliary_offset + 1
 
