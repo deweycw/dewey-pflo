@@ -23,7 +23,7 @@ module Reaction_Sandbox_JinBethke_O2aq_DOC_class
     PetscReal :: m
     PetscReal :: chi
     PetscReal :: o2_threshold
-    PetscBool :: dg0
+    PetscReal :: dg0
     
 
   contains
@@ -148,7 +148,7 @@ subroutine JinBethkeO2aqDOCSetup(this,reaction,option)
   reaction%nauxiliary = reaction%nauxiliary + 3
   ! Aqueous species
   word = 'DOC-'
-  this%doc_id_id = &
+  this%doc_id = &
     GetPrimarySpeciesIDFromName(word,reaction,option)
   word = 'H+'
   this%h_ion_id = &
@@ -225,7 +225,6 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
 
   class(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
-  type(mineral_type), pointer :: mineral
   PetscReal :: volume               ! [m^3 bulk volume]
   PetscReal :: porosity             ! m^3 pore space / m^3 bulk
   PetscReal :: liquid_saturation
@@ -236,7 +235,7 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
 
   PetscReal :: Bicarbonate, Xim, yield, O2aq, DOC, Proton
   PetscReal :: Rate, Rate_DOC, Rate_Bicarbonate, Rate_O2aq, Rate_Proton
-  PetscReal :: stoi_doc, stoi_bicarbonate, stoi_o2aq
+  PetscReal :: stoi_doc, stoi_bicarbonate, stoi_o2aq, stoi_proton
   PetscReal :: m, chi
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fdonor, Facceptor
@@ -306,13 +305,6 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
     Ftr = Ft
   endif
 
-  QK = exp(lnQK)
-  affinity_factor = 1.d0-QK
-  sign_ = sign(1.d0,affinity_factor)
-
-  calculate_precip = (sign_<0)
-
-  ! only calculate diss / iron reduciton rate if mineral is present and O2(aq) below threhsold
   calculate_rate = (O2aq > (this%o2_threshold))
 
   Rate = 0.d0
@@ -335,7 +327,7 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
     
     Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
     Residual(this%doc_id) = Residual(this%doc_id) - Rate_DOC
-    Residual(this%fe2_id) = Residual(this%o2aq_id) - Rate_O2aq
+    Residual(this%o2aq_id) = Residual(this%o2aq_id) - Rate_O2aq
     Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
     
   endif
