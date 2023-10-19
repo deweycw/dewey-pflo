@@ -741,7 +741,7 @@ reaction_sandbox.o : global_aux.o input_aux.o material_aux.o option.o \
                      reaction_sandbox_fe_mineral_precipitation.o \
                      reaction_sandbox_fe_fh_mineral_ripening.o \
                      reaction_sandbox_fh_gt_mineral_ripening.o \
-                     reaction_sandbox_dom_jinbethke_o2_doc.o \
+                     reaction_sandbox_jinbethke_o2_doc.o \
                      reaction_sandbox_som_acetate.o \
                      reaction_sandbox_mackinawite.o \
                      reaction_sandbox_clm_cn.o reaction_sandbox_example.o \
