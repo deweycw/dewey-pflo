@@ -804,7 +804,7 @@ reaction_sandbox_fh_gt_mineral_ripening.o : global_aux.o input_aux.o material_au
                             pflotran_constants.o reaction_aux.o \
                             reaction_mineral_aux.o reaction_sandbox_base.o \
                             reactive_transport_aux.o string.o
-reaction_sandbox_dom_jinbethke_o2_doc.o : global_aux.o input_aux.o material_aux.o option.o \
+reaction_sandbox_jinbethke_o2_doc.o : global_aux.o input_aux.o material_aux.o option.o \
                             pflotran_constants.o reaction_aux.o \
                             reaction_immobile_aux.o reaction_sandbox_base.o \
                             reactive_transport_aux.o string.o

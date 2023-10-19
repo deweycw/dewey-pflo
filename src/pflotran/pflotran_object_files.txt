@@ -142,7 +142,7 @@ chem_obj = \
 	${common_src}reaction_sandbox_fe_mineral_precipitation.o \
 	${common_src}reaction_sandbox_fe_fh_mineral_ripening.o \
 	${common_src}reaction_sandbox_fh_gt_mineral_ripening.o \
-	${common_src}reaction_sandbox_dom_jinbethke_o2_doc.o \
+	${common_src}reaction_sandbox_jinbethke_o2_doc.o \
 	${common_src}reaction_sandbox_som_acetate.o \
 	${common_src}reaction_sandbox_mackinawite.o \
 	${common_src}reaction_sandbox_flexbiohill.o \
