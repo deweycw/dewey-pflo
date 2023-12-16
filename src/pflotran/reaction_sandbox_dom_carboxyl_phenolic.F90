@@ -187,7 +187,7 @@ subroutine FcnDOMEvaluate(this, Residual,Jacobian,compute_derivative, &
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   implicit none
   class(reaction_sandbox_functionalized_dom_type) :: this
   type(option_type) :: option

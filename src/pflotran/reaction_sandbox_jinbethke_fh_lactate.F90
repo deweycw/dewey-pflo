@@ -225,7 +225,7 @@ subroutine JinBethkeFerrihydriteLactateEvaluate(this, Residual,Jacobian,compute_
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   use Reaction_Mineral_Aux_module
   implicit none
   class(reaction_sandbox_jinbethke_ferrihydrite_lactate_type) :: this
@@ -436,7 +436,7 @@ subroutine JinBethkeFerrihydriteLactateUpdateKineticState(this,rt_auxvar,global_
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   implicit none
   class(reaction_sandbox_jinbethke_ferrihydrite_lactate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar

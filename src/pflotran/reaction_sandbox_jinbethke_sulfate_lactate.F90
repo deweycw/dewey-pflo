@@ -211,7 +211,7 @@ subroutine JinBethkeSulfateLactateEvaluate(this, Residual,Jacobian,compute_deriv
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   implicit none
   class(reaction_sandbox_jinbethke_sulfate_lactate_type) :: this
   type(option_type) :: option

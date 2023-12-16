@@ -201,7 +201,7 @@ subroutine SulfAcDGREvaluate(this, Residual,Jacobian,compute_derivative, &
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   implicit none
   class(reaction_sandbox_sulfate_acetate_dgr_type) :: this
   type(option_type) :: option
