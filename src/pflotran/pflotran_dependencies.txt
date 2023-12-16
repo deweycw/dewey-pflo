@@ -2742,6 +2742,19 @@ reaction_sandbox.o : \
   reaction_sandbox_base.o \
   reaction_sandbox_bioTH.o \
   reaction_sandbox_biohill.o \
+  reaction_sandbox_jinbethke_gt_lactate.o \
+  reaction_sandbox_jinbethke_fh_lactate.o \
+  reaction_sandbox_jinbethke_sulfate_lactate.o \
+  reaction_sandbox_jinbethke_gt_acetate.o \
+  reaction_sandbox_jinbethke_fh_acetate.o \
+  reaction_sandbox_jinbethke_sulfate_acetate.o \
+  reaction_sandbox_jinbethke_nitrate.o \
+  reaction_sandbox_fe_mineral_precipitation.o \
+  reaction_sandbox_fe_fh_mineral_ripening.o \
+  reaction_sandbox_fh_gt_mineral_ripening.o \
+  reaction_sandbox_jinbethke_o2_doc.o \
+  reaction_sandbox_som_acetate.o \
+  reaction_sandbox_mackinawite.o \
   reaction_sandbox_calcite.o \
   reaction_sandbox_chromium.o \
   reaction_sandbox_clm_cn.o \
@@ -2788,6 +2801,151 @@ reaction_sandbox_biohill.o : \
   reaction_immobile_aux.o \
   reaction_sandbox_base.o \
   reactive_transport_aux.o
+reaction_sandbox_jinbethke_fh_acetate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  reaction_mineral_aux.o \
+  string.o
+reaction_sandbox_jinbethke_fh_lactate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  reaction_mineral_aux.o \
+  string.o
+reaction_sandbox_jinbethke_gt_acetate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  reaction_mineral_aux.o \
+  string.o
+reaction_sandbox_jinbethke_gt_lactate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  reaction_mineral_aux.o \
+  string.o
+reaction_sandbox_jinbethke_sulfate_acetate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
+reaction_sandbox_jinbethke_sulfate_lactate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
+reaction_sandbox_jinbethke_nitrate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
+reaction_sandbox_fe_mineral_precipitation.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_mineral_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
+reaction_sandbox_fe_fh_mineral_ripening.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_mineral_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
+reaction_sandbox_fh_gt_mineral_ripening.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_mineral_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
+reaction_sandbox_jinbethke_o2_doc.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_immobile_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o string.o
+reaction_sandbox_som_acetate.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_mineral_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
+reaction_sandbox_mackinawite.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_mineral_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o
 reaction_sandbox_calcite.o : \
   global_aux.o \
   input_aux.o \
