@@ -26,11 +26,6 @@ module Output_module
   PetscInt, parameter :: TECPLOT_FILE = 0
   PetscInt, parameter ::  HDF5_FILE = 1
 
-
-  PetscBool :: observation_first
-  PetscBool :: hdf5_first
-  PetscBool :: mass_balance_first
-
   public :: OutputInit, &
             Output, &
             OutputPrintCouplers, &
@@ -41,6 +36,7 @@ module Output_module
             OutputFileRead, &
             OutputInputRecord, &
             OutputEnsureVariablesExist, &
+            OutputListEnsureVariablesExist, &
             OutputFindNaNOrInfInVec
 
 contains
@@ -92,6 +88,7 @@ subroutine OutputFileRead(input,realization,output_option, &
   use Grid_module
   use Patch_module
   use Region_module
+  use Print_module
 
   implicit none
 
@@ -110,16 +107,16 @@ subroutine OutputFileRead(input,realization,output_option, &
   PetscReal, pointer :: temp_real_array(:)
 
   character(len=MAXWORDLENGTH) :: word
-  character(len=MAXWORDLENGTH) :: units, internal_units
+  character(len=MAXWORDLENGTH) :: internal_units
   character(len=MAXSTRINGLENGTH) :: string
   PetscReal :: temp_real,temp_real2
-  PetscReal :: units_conversion,deltat
-  PetscInt :: k,deltas
+  PetscReal :: units_conversion
+  PetscInt :: k
   PetscBool :: added
   PetscBool :: vel_cent, vel_face
   PetscBool :: fluxes
   PetscBool :: mass_flowrate, energy_flowrate
-  PetscBool :: aveg_mass_flowrate, aveg_energy_flowrate,is_sum,is_rst
+  PetscBool :: aveg_mass_flowrate, aveg_energy_flowrate
 
   option => realization%option
   patch => realization%patch
@@ -176,6 +173,18 @@ subroutine OutputFileRead(input,realization,output_option, &
           case('MASS_BALANCE_FILE')
             output_option%print_initial_massbal = PETSC_FALSE
         end select
+
+!......................................
+      case('PRINT_INITIAL')
+        select case(trim(block_name))
+          case('OBSERVATION_FILE')
+            output_option%print_initial_obs = PETSC_TRUE
+          case('SNAPSHOT_FILE')
+            output_option%print_initial_snap = PETSC_TRUE
+          case('MASS_BALANCE_FILE')
+            output_option%print_initial_massbal = PETSC_TRUE
+        end select
+
 !...............................
       case('NO_PRINT_SOURCE_SINK')
         select case(trim(block_name))
@@ -242,7 +251,7 @@ subroutine OutputFileRead(input,realization,output_option, &
         call InputErrorMsg(input,option,'units',string)
         internal_units = 'sec'
         units_conversion = &
-             UnitsConvertToInternal(word,internal_units,option)
+             UnitsConvertToInternal(word,internal_units,string,option)
         call UtilityReadArray(temp_real_array,NEG_ONE_INTEGER, &
              string,input,option)
         do k = 1, size(temp_real_array)
@@ -264,52 +273,46 @@ subroutine OutputFileRead(input,realization,output_option, &
       case('PERIODIC')
         string = 'OUTPUT,' // trim(block_name) // ',PERIODIC'
         call InputReadCard(input,option,word)
-        call InputErrorMsg(input,option,'periodic time increment type',string)
+        call InputErrorMsg(input,option,'periodic increment type',string)
         call StringToUpper(word)
         select case(trim(word))
         !.............
           case('TIME')
-            string = 'OUTPUT,' // trim(block_name) // ',PERIODIC,TIME'
+            string = trim(string)//',TIME'
             call InputReadDouble(input,option,temp_real)
             call InputErrorMsg(input,option,'time increment',string)
-            call InputReadWord(input,option,word,PETSC_TRUE)
-            call InputErrorMsg(input,option,'time increment units',string)
             internal_units = 'sec'
-            units_conversion = UnitsConvertToInternal(word, &
-                 internal_units,option)
+            call InputReadAndConvertUnits(input,temp_real, &
+                                          internal_units,string,option)
             select case(trim(block_name))
               case('SNAPSHOT_FILE')
-                output_option%periodic_snap_output_time_incr = temp_real* &
-                     units_conversion
+                output_option%periodic_snap_output_time_incr = temp_real
               case('OBSERVATION_FILE')
-                output_option%periodic_obs_output_time_incr = temp_real* &
-                     units_conversion
+                output_option%periodic_obs_output_time_incr = temp_real
               case('MASS_BALANCE_FILE')
-                output_option%periodic_msbl_output_time_incr = temp_real* &
-                     units_conversion
+                output_option%periodic_msbl_output_time_incr = temp_real
             end select
             call InputReadCard(input,option,word)
             if (input%ierr == 0) then
               if (StringCompareIgnoreCase(word,'between')) then
                 call InputReadDouble(input,option,temp_real)
                 call InputErrorMsg(input,option,'start time',string)
-                call InputReadWord(input,option,word,PETSC_TRUE)
-                call InputErrorMsg(input,option,'start time units',string)
-                units_conversion = UnitsConvertToInternal(word, &
-                     internal_units,option)
-                temp_real = temp_real * units_conversion
+                internal_units = 'sec'
+                call InputReadAndConvertUnits(input,temp_real, &
+                                              internal_units, &
+                                              trim(string)//',START TIME', &
+                                              option)
                 call InputReadCard(input,option,word)
                 if (.not.StringCompareIgnoreCase(word,'and')) then
                   input%ierr = 1
                 endif
-                call InputErrorMsg(input,option,'and',string)
+                call InputErrorMsg(input,option,'AND',string)
                 call InputReadDouble(input,option,temp_real2)
                 call InputErrorMsg(input,option,'end time',string)
-                call InputReadWord(input,option,word,PETSC_TRUE)
-                call InputErrorMsg(input,option,'end time units',string)
-                units_conversion = UnitsConvertToInternal(word, &
-                     internal_units,option)
-                temp_real2 = temp_real2 * units_conversion
+                internal_units = 'sec'
+                call InputReadAndConvertUnits(input,temp_real2, &
+                                              internal_units, &
+                                              trim(string)//',END TIME',option)
                 select case(trim(block_name))
                   case('SNAPSHOT_FILE')
                     do
@@ -347,12 +350,12 @@ subroutine OutputFileRead(input,realization,output_option, &
                 end select
               else
                 input%ierr = 1
-                call InputErrorMsg(input,option,'between',string)
+                call InputErrorMsg(input,option,'BETWEEN',string)
               endif
             endif
         !.................
           case('TIMESTEP')
-            string = 'OUTPUT,' // trim(block_name) // ',TIMESTEP'
+            string = trim(string)//',TIMESTEP'
             select case(trim(block_name))
               case('SNAPSHOT_FILE')
                 call InputReadInt(input,option, &
@@ -378,7 +381,8 @@ subroutine OutputFileRead(input,realization,output_option, &
         call StringToUpper(word)
         select case(trim(word))
           case('OFF')
-            option%driver%print_to_screen = PETSC_FALSE
+            call PrintSetPrintToScreenFlag(option%driver%print_flags, &
+                                           PETSC_FALSE)
           case('PERIODIC')
             string = trim(string) // ',PERIODIC'
             call InputReadInt(input,option,output_option%screen_imod)
@@ -391,60 +395,80 @@ subroutine OutputFileRead(input,realization,output_option, &
       case('FORMAT')
         string = 'OUTPUT,' // trim(block_name) // ',FORMAT'
         select case(trim(block_name))
-          case('OBSERVATION_FILE')
-            option%io_buffer = 'FORMAT cannot be specified within &
-                 &the OUTPUT,OBSERVATION_FILE block. Observation output is &
-                 &written in TECPLOT format only.'
-            call PrintErrMsg(option)
           case('MASS_BALANCE_FILE')
             option%io_buffer = 'FORMAT cannot be specified within &
                  &the OUTPUT,MASS_BALANCE_FILE block. Mass balance output is &
                  &written in TECPLOT format only.'
             call PrintErrMsg(option)
         end select
+
         call InputReadCard(input,option,word)
         call InputErrorMsg(input,option,'keyword',string)
         call StringToUpper(word)
+
         select case(trim(word))
         !..............
           case ('HDF5')
-            string = trim(string) // ',HDF5'
-            output_option%print_hdf5 = PETSC_TRUE
-            call InputReadCard(input,option,word)
-            if (input%ierr /= 0) then
-              call InputDefaultMsg(input,option,string)
-              output_option%print_single_h5_file = PETSC_TRUE
-            else
-              call StringToUpper(word)
-              select case(trim(word))
-              !....................
-                case('SINGLE_FILE')
+
+            select case(trim(block_name))
+              case('OBSERVATION_FILE')
+                string = trim(string) // ',HDF5'
+                output_option%print_obs_hdf5 = PETSC_TRUE
+
+              case default  ! SNAPSHOT
+                string = trim(string) // ',HDF5'
+                output_option%print_hdf5 = PETSC_TRUE
+                call InputReadCard(input,option,word)
+                if (input%ierr /= 0) then
+                  call InputDefaultMsg(input,option,string)
                   output_option%print_single_h5_file = PETSC_TRUE
-              !.......................
-                case('MULTIPLE_FILES')
-                  string = trim(string) // ',MULTIPLE_FILES'
-                  output_option%print_single_h5_file = PETSC_FALSE
-                  output_option%times_per_h5_file = 1
-                  call InputReadCard(input,option,word)
-                  if (input%ierr == 0) then
-                    select case(trim(word))
-                      case('TIMES_PER_FILE')
-                        string = trim(string) // ',TIMES_PER_FILE'
-                        call InputReadInt(input,option, &
-                             output_option%times_per_h5_file)
-                        call InputErrorMsg(input,option,'timestep increment', &
-                                           string)
-                      case default
-                        call InputKeywordUnrecognized(input,word,string,option)
-                    end select
-                  endif
-              !.............
-                case default
-                  call InputKeywordUnrecognized(input,word,string,option)
-              end select
-            endif
+                else
+                  call StringToUpper(word)
+                  select case(trim(word))
+                  !....................
+                    case('SINGLE_FILE')
+                      output_option%print_single_h5_file = PETSC_TRUE
+                  !.......................
+                    case('MULTIPLE_FILES')
+                      string = trim(string) // ',MULTIPLE_FILES'
+                      output_option%print_single_h5_file = PETSC_FALSE
+                      output_option%times_per_h5_file = 1
+                      call InputReadCard(input,option,word)
+                      if (input%ierr == 0) then
+                        select case(trim(word))
+                          case('TIMES_PER_FILE')
+                            string = trim(string) // ',TIMES_PER_FILE'
+                            call InputReadInt(input,option, &
+                                 output_option%times_per_h5_file)
+                            call InputErrorMsg(input,option, &
+                                               'timestep increment', &
+                                               string)
+                          case default
+                            call InputKeywordUnrecognized(input,word, &
+                                                          string,option)
+                        end select
+                      endif
+                  !.............
+                    case default
+                      call InputKeywordUnrecognized(input,word,string,option)
+                  end select
+                endif
+
+            end select  ! Observation or snapshot file
+
         !.................
           case ('TECPLOT')
+
+            ! error if in OBSERVATION_FILE block
+            if (trim(block_name) == 'OBSERVATION_FILE') then
+              option%io_buffer = 'TECPLOT is not a FORMAT option for &
+                  &the OUTPUT,OBSERVATION_FILE block. TECPLOT format &
+                  &files are always written. Remove FORMAT TECPLOT &
+                  &specification from the OBSERVATION_FILE block in &
+                  &the input deck.'
+              call PrintErrMsg(option)
+            endif
+
             string = trim(string) // ',TECPLOT'
             output_option%print_tecplot = PETSC_TRUE
             call InputReadCard(input,option,word)
@@ -461,7 +485,7 @@ subroutine OutputFileRead(input,realization,output_option, &
                 call InputKeywordUnrecognized(input,word,string,option)
             end select
             if (output_option%tecplot_format == TECPLOT_POINT_FORMAT &
-                 .and. option%comm%mycommsize > 1) then
+                 .and. option%comm%size > 1) then
               option%io_buffer = 'TECPLOT POINT format not supported in &
                 &parallel. Switching to TECPLOT BLOCK.'
               call PrintMsg(option)
@@ -476,11 +500,24 @@ subroutine OutputFileRead(input,realization,output_option, &
             endif
         !.............
           case ('VTK')
+
+            ! error if in OBSERVATION_FILE block
+            if (trim(block_name) == 'OBSERVATION_FILE') then
+              option%io_buffer = 'VTK is not a FORMAT option for the &
+                  &OUTPUT,OBSERVATION_FILE block. Remove FORMAT VTK &
+                  &specification from the OBSERVATION_FILE block in &
+                  &the input deck.'
+              call PrintErrMsg(option)
+            endif
+
             output_option%print_vtk = PETSC_TRUE
         !.............
           case default
             call InputKeywordUnrecognized(input,word,string,option)
         end select
+
+      case ('ACKNOWLEDGE_VTK_FLAW')
+        output_option%vtk_acknowledgment = PETSC_TRUE
 
 !...................................
       case ('HDF5_WRITE_GROUP_SIZE')
@@ -598,7 +635,8 @@ subroutine OutputFileRead(input,realization,output_option, &
       endif
     endif
     option%flow%store_fluxes = PETSC_TRUE
-    if (associated(grid%unstructured_grid%explicit_grid)) then
+    if (realization%discretization%grid%itype == &
+        EXPLICIT_UNSTRUCTURED_GRID) then
       option%flow%store_fluxes = PETSC_TRUE
       output_option%print_explicit_flowrate = mass_flowrate
     endif
@@ -770,6 +808,13 @@ subroutine OutputVariableRead(input,option,output_variable_list)
                                 option)
         call OutputVariableAddToList(output_variable_list,name, &
                                      category,units,id,subvar)
+        if (option%nflowdof == 4) then
+          word = 'XSL'
+          call OutputVariableToID(word,name,units,category,id,subvar,&
+                                 subsubvar,option)
+          call OutputVariableAddToList(output_variable_list,name,&
+                                       category,units,id,subvar)
+        endif
       case ('GAS_MOLE_FRACTIONS')
         word = 'XGG'
         call OutputVariableToID(word,name,units,category,id,subvar,subsubvar, &
@@ -792,6 +837,13 @@ subroutine OutputVariableRead(input,option,output_variable_list)
                                 option)
         call OutputVariableAddToList(output_variable_list,name, &
                                      category,units,id,subvar)
+        if (option%iflowmode == G_MODE .and. option%nflowdof == 4) then
+          word = 'WSL'
+          call OutputVariableToID(word,name,units,category,id,subvar,subsubvar, &
+                                  option)
+          call OutputVariableAddToList(output_variable_list,name, &
+                                       category,units,id,subvar)
+        endif
       case ('GAS_MASS_FRACTIONS')
         word = 'WGG'
         call OutputVariableToID(word,name,units,category,id,subvar,subsubvar, &
@@ -976,8 +1028,8 @@ end subroutine OutputVariableRead
 
 ! ************************************************************************** !
 
-subroutine Output(realization_base,snapshot_plot_flag,observation_plot_flag, &
-                  massbal_plot_flag)
+subroutine Output(realization_base,snapshot_plot_flag, &
+                  observation_plot_flag,massbal_plot_flag)
   !
   ! Main driver for all output subroutines
   !
@@ -1007,7 +1059,6 @@ subroutine Output(realization_base,snapshot_plot_flag,observation_plot_flag, &
 
   ! check for plot request from active directory
   if (.not.snapshot_plot_flag) then
-
     if (option%use_touch_options) then
       string = 'plot'
       if (OptionCheckTouch(option,string)) then
@@ -1015,20 +1066,20 @@ subroutine Output(realization_base,snapshot_plot_flag,observation_plot_flag, &
         snapshot_plot_flag = PETSC_TRUE
       endif
     endif
-
   endif
 
 !.................................
   if (snapshot_plot_flag) then
 
+    call PrintMsg(option,'')
     if (realization_base%output_option%print_hdf5) then
       call PetscTime(tstart,ierr);CHKERRQ(ierr)
       call PetscLogEventBegin(logging%event_output_hdf5,ierr);CHKERRQ(ierr)
       if (realization_base%discretization%itype == UNSTRUCTURED_GRID) then
         select case (realization_base%discretization%grid%itype)
           case (EXPLICIT_UNSTRUCTURED_GRID)
-             call OutputHDF5UGridXDMFExplicit(realization_base, &
-                  INSTANTANEOUS_VARS)
+            call OutputHDF5UGridXDMFExplicit(realization_base, &
+                                             INSTANTANEOUS_VARS)
           case (IMPLICIT_UNSTRUCTURED_GRID)
             call OutputHDF5UGridXDMF(realization_base,INSTANTANEOUS_VARS)
           case (POLYHEDRA_UNSTRUCTURED_GRID)
@@ -1047,7 +1098,8 @@ subroutine Output(realization_base,snapshot_plot_flag,observation_plot_flag, &
 
     if (realization_base%output_option%print_tecplot) then
       call PetscTime(tstart,ierr);CHKERRQ(ierr)
-      call PetscLogEventBegin(logging%event_output_tecplot,ierr);CHKERRQ(ierr)
+      call PetscLogEventBegin(logging%event_output_tecplot, &
+                              ierr);CHKERRQ(ierr)
       select case(realization_base%output_option%tecplot_format)
         case (TECPLOT_POINT_FORMAT)
           call OutputTecplotPoint(realization_base)
@@ -1063,7 +1115,8 @@ subroutine Output(realization_base,snapshot_plot_flag,observation_plot_flag, &
 
     if (realization_base%output_option%print_explicit_flowrate) then
       call PetscTime(tstart,ierr);CHKERRQ(ierr)
-      call PetscLogEventBegin(logging%event_output_tecplot,ierr);CHKERRQ(ierr)
+      call PetscLogEventBegin(logging%event_output_tecplot, &
+                              ierr);CHKERRQ(ierr)
       call OutputPrintExplicitFlowrates(realization_base)
       call PetscLogEventEnd(logging%event_output_tecplot,ierr);CHKERRQ(ierr)
       call PetscTime(tend,ierr);CHKERRQ(ierr)
@@ -1085,7 +1138,7 @@ subroutine Output(realization_base,snapshot_plot_flag,observation_plot_flag, &
     endif
 
     ! Print secondary continuum variables vs sec. continuum dist.
-    if (option%use_mc) then
+    if (option%use_sc) then
       if (realization_base%output_option%print_tecplot) then
         call PetscTime(tstart,ierr);CHKERRQ(ierr)
         call PetscLogEventBegin(logging%event_output_secondary_tecplot, &
@@ -1467,9 +1520,9 @@ subroutine ComputeFlowCellVelocityStats(realization_base)
   type(patch_type), pointer :: patch
   type(discretization_type), pointer :: discretization
   type(output_option_type), pointer :: output_option
-  PetscInt :: iconn, i, direction, iphase, sum_connection
+  PetscInt :: iconn, direction, iphase, sum_connection
   PetscInt :: local_id_up, local_id_dn, local_id
-  PetscInt :: ghosted_id_up, ghosted_id_dn, ghosted_id
+  PetscInt :: ghosted_id_up, ghosted_id_dn
   PetscReal :: flux
   Vec :: global_vec, global_vec2
 
@@ -1477,7 +1530,7 @@ subroutine ComputeFlowCellVelocityStats(realization_base)
   PetscInt :: max_loc, min_loc
   character(len=MAXSTRINGLENGTH) :: string
 
-  PetscReal, pointer :: vec_ptr(:), vec2_ptr(:), den_loc_p(:)
+  PetscReal, pointer :: vec_ptr(:)
   PetscReal, allocatable :: sum_area(:)
   PetscErrorCode :: ierr
 
@@ -1629,7 +1682,6 @@ subroutine ComputeFlowFluxVelocityStats(realization_base)
   type(discretization_type), pointer :: discretization
   type(output_option_type), pointer :: output_option
 
-  character(len=MAXSTRINGLENGTH) :: filename
   character(len=MAXSTRINGLENGTH) :: string
 
   PetscInt :: iphase
@@ -2186,7 +2238,6 @@ subroutine OutputPrintRegionsH5(realization_base)
   integer(HID_T) :: grp_id
 
   PetscReal, pointer :: one_ptr(:)
-  PetscReal, pointer :: all_ptr(:)
   PetscInt :: i
   PetscErrorCode :: ierr
 
@@ -2455,8 +2506,15 @@ subroutine OutputListEnsureVariablesExist(output_variable_list,option)
   ! Date: 03/02/17
   !
   use Option_module
-  use Material_Aux_class, only : soil_compressibility_index, &
-                                 soil_reference_pressure_index
+  use Material_Aux_module, only : soil_compressibility_index, &
+                                  soil_reference_pressure_index, &
+                                  electrical_conductivity_index, &
+                                  archie_cementation_exp_index, &
+                                  archie_saturation_exp_index, &
+                                  archie_tortuosity_index, &
+                                  surf_elec_conduct_index, &
+                                  ws_clay_conduct_index
+
   use Variables_module
 
   implicit none
@@ -2464,20 +2522,58 @@ subroutine OutputListEnsureVariablesExist(output_variable_list,option)
   type(output_variable_list_type), pointer :: output_variable_list
   type(option_type) :: option
 
+  character(len=MAXSTRINGLENGTH) :: error_string
   type(output_variable_type), pointer :: cur_variable
   PetscBool :: error_flag
   PetscInt :: error_count
+
+  if (.not.associated(output_variable_list)) return
 
   cur_variable => output_variable_list%first
   error_count =  0
   do
     if (.not.associated(cur_variable)) exit
     error_flag = PETSC_FALSE
+    error_string = ''
     select case(cur_variable%ivar)
       case(SOIL_COMPRESSIBILITY)
         if (soil_compressibility_index == 0) error_flag = PETSC_TRUE
       case(SOIL_REFERENCE_PRESSURE)
         if (soil_reference_pressure_index == 0) error_flag = PETSC_TRUE
+      case(ELECTRICAL_CONDUCTIVITY)
+        if (electrical_conductivity_index == 0 .and. &
+            (option%iflowmode == NULL_MODE .and. &
+             option%itranmode == NULL_MODE)) then
+          error_flag = PETSC_TRUE
+          error_string = ' - must be defined under MATERIAL_PROPERTY &
+            &(for ERT alone)'
+        endif
+      case(ARCHIE_CEMENTATION_EXPONENT)
+        if (archie_cementation_exp_index == 0) then
+          error_flag = PETSC_TRUE
+          error_string = ' - must be defined under MATERIAL_PROPERTY'
+        endif
+      case(ARCHIE_SATURATION_EXPONENT)
+        if (archie_saturation_exp_index == 0) then
+          error_flag = PETSC_TRUE
+          error_string = ' - must be defined under MATERIAL_PROPERTY'
+        endif
+      case(ARCHIE_TORTUOSITY_CONSTANT)
+        if (archie_tortuosity_index == 0) then
+          error_flag = PETSC_TRUE
+          error_string = ' - must be defined under MATERIAL_PROPERTY'
+        endif
+      case(SURFACE_ELECTRICAL_CONDUCTIVITY)
+        if (surf_elec_conduct_index == 0) then
+          error_flag = PETSC_TRUE
+          error_string = ' - must be defined under MATERIAL_PROPERTY'
+        endif
+      case(WAXMAN_SMITS_CLAY_CONDUCTIVITY)
+        if (ws_clay_conduct_index == 0) then
+          error_flag = PETSC_TRUE
+          error_string = ' - must be defined under MATERIAL_PROPERTY'
+        endif
+      ! ADD_SOIL_PROPERTY_INDEX_HERE
     end select
     if (error_flag) then
       error_count = error_count + 1
@@ -2490,7 +2586,7 @@ subroutine OutputListEnsureVariablesExist(output_variable_list,option)
         endif
       endif
       if (OptionPrintToScreen(option)) then
-        print *, '  ' // trim(cur_variable%name)
+        print *, '  ' // trim(cur_variable%name) // trim(error_string)
       endif
     endif
     cur_variable => cur_variable%next
@@ -2549,8 +2645,8 @@ subroutine OutputFindNaNOrInfInVec(vec,grid,option)
   call VecRestoreArrayReadF90(vec,vec_p,ierr);CHKERRQ(ierr)
 
   exscan_count = 0
-  call MPI_Exscan(local_count,exscan_count,ONE_INTEGER_MPI, &
-                MPIU_INTEGER,MPI_SUM,option%mycomm,ierr)
+  call MPI_Exscan(local_count,exscan_count,ONE_INTEGER_MPI,MPIU_INTEGER, &
+                  MPI_SUM,option%mycomm,ierr);CHKERRQ(ierr)
   do i = 1, min(max_number_to_print-exscan_count,local_count)
     idof = iarray(2,i)
     if (idof > 0) then

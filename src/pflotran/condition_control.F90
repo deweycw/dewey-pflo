@@ -1,6 +1,6 @@
 module Condition_Control_module
-  
-  ! This module store routines that operate on conditions from a level above 
+
+  ! This module store routines that operate on conditions from a level above
   ! that of the realization_module.  This is necessary to access capability
   ! such as HDF5 which is unavailable from within the realization object
   ! and below.  Routines in this module will loop over realization, levels,
@@ -19,18 +19,18 @@ module Condition_Control_module
             CondControlAssignRTTranInitCond, &
             CondControlAssignNWTranInitCond, &
             CondControlScaleSourceSink
- 
+
 contains
 
 ! ************************************************************************** !
 
 subroutine CondControlAssignFlowInitCond(realization)
-  ! 
+  !
   ! Assigns flow initial conditions to model
-  ! 
+  !
   ! Author: Glenn Hammond
   ! Date: 11/02/07, 10/18/11
-  ! 
+  !
   use Realization_Subsurface_class
   use Discretization_module
   use Region_module
@@ -54,18 +54,18 @@ subroutine CondControlAssignFlowInitCond(realization)
   use Hydrate_Aux_module, hyd_dof_to_primary_variable => dof_to_primary_variable
 
   implicit none
-  
+
   class(realization_subsurface_type) :: realization
-  
-  PetscInt :: icell, iconn, idof, iface
+
+  PetscInt :: icell, iconn, idof
   PetscInt :: local_id, ghosted_id, iend, ibegin
   PetscReal, pointer :: xx_p(:)
   PetscErrorCode :: ierr
-  
+
   character(len=MAXSTRINGLENGTH) :: string
-  
+
   type(option_type), pointer :: option
-  type(field_type), pointer :: field  
+  type(field_type), pointer :: field
   type(patch_type), pointer :: patch
   type(grid_type), pointer :: grid
   type(discretization_type), pointer :: discretization
@@ -74,15 +74,12 @@ subroutine CondControlAssignFlowInitCond(realization)
   type(flow_general_condition_type), pointer :: general
   type(flow_hydrate_condition_type), pointer :: hydrate
   class(dataset_base_type), pointer :: dataset
-  type(global_auxvar_type) :: global_aux
   PetscBool :: dataset_flag(realization%option%nflowdof)
   PetscInt :: num_connections
   PetscInt, pointer :: conn_id_ptr(:)
   PetscInt :: offset, istate
-  PetscReal :: x(realization%option%nflowdof)
   PetscReal :: temperature, p_sat
   PetscReal :: tempreal
-  type(global_auxvar_type), pointer :: global_auxvars(:)
 
   option => realization%option
   discretization => realization%discretization
@@ -103,7 +100,7 @@ subroutine CondControlAssignFlowInitCond(realization)
 
       case(WF_MODE)
 
-        call VecGetArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+        call VecGetArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
 
         xx_p = UNINITIALIZED_DOUBLE
 
@@ -127,14 +124,15 @@ subroutine CondControlAssignFlowInitCond(realization)
                 endif
               class is(dataset_common_hdf5_type)
                 dataset_flag(idof) = PETSC_TRUE
-                call VecRestoreArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+                call VecRestoreArrayF90(field%flow_xx,xx_p, &
+                                        ierr);CHKERRQ(ierr)
                 call ConditionControlMapDatasetToVec(realization, &
                         initial_condition%flow_condition% &
                           sub_condition_ptr(idof)%ptr%dataset,idof, &
                         field%flow_xx,GLOBAL)
-                call VecGetArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+                call VecGetArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
             end select
-          enddo            
+          enddo
 
           if (.not.associated(initial_condition%flow_aux_real_var)) then
             if (.not.associated(initial_condition%flow_condition)) then
@@ -212,17 +210,17 @@ subroutine CondControlAssignFlowInitCond(realization)
           initial_condition => initial_condition%next
         enddo
 
-        call VecRestoreArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
-      
+        call VecRestoreArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
+
       case(G_MODE) ! general phase mode
 
-        call VecGetArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
-      
+        call VecGetArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
+
         xx_p = UNINITIALIZED_DOUBLE
-      
+
         initial_condition => cur_patch%initial_condition_list%first
         do
-      
+
           if (.not.associated(initial_condition)) exit
 
           if (.not.associated(initial_condition%flow_aux_real_var)) then
@@ -230,9 +228,9 @@ subroutine CondControlAssignFlowInitCond(realization)
               option%io_buffer = 'Flow condition is NULL in initial condition'
               call PrintErrMsg(option)
             endif
-              
+
             general => initial_condition%flow_condition%general
-              
+
             string = 'in flow condition "' // &
               trim(initial_condition%flow_condition%name) // &
               '" within initial condition "' // &
@@ -240,7 +238,7 @@ subroutine CondControlAssignFlowInitCond(realization)
               '" must be of type Dirichlet or Hydrostatic'
             ! error checking.  the data must match the state
             select case(initial_condition%flow_condition%iphase)
-              case(TWO_PHASE_STATE)  
+              case(TWO_PHASE_STATE)
                 if (.not. &
                     (general%gas_pressure%itype == DIRICHLET_BC .or. &
                       general%gas_pressure%itype == HYDROSTATIC_BC)) then
@@ -252,6 +250,35 @@ subroutine CondControlAssignFlowInitCond(realization)
                       general%gas_saturation%itype == HYDROSTATIC_BC)) then
                   option%io_buffer = 'Gas saturation ' // trim(string)
                   call PrintErrMsg(option)
+                endif
+              case(LGP_STATE)
+                if (.not. &
+                     (general%gas_pressure%itype == DIRICHLET_BC .or. &
+                     general%gas_pressure%itype == HYDROSTATIC_BC)) then
+                   option%io_buffer = 'Gas pressure ' // trim(string)
+                   call PrintErrMsg(option)
+                endif
+                if (.not. &
+                     (general%gas_saturation%itype == DIRICHLET_BC .or. &
+                     general%gas_saturation%itype == HYDROSTATIC_BC)) then
+                   option%io_buffer = 'Gas saturation ' // trim(string)
+                   call PrintErrMsg(option)
+                endif
+                if (general_salt .and. general_soluble_matrix) then
+                   if (.not. &
+                        (general%porosity%itype == DIRICHLET_BC .or. &
+                        general%porosity%itype == HYDROSTATIC_BC)) then
+                      option%io_buffer = 'Porosity ' // trim(string)
+                      call PrintErrMsg(option)
+                   endif
+                endif
+                if (general_salt) then
+                   if (.not. &
+                        (general%precipitate_saturation%itype == DIRICHLET_BC .or. &
+                        general%precipitate_saturation%itype == HYDROSTATIC_BC)) then
+                      option%io_buffer = 'Precipitate saturation ' // trim(string)
+                      call PrintErrMsg(option)
+                   endif
                 endif
               case(LIQUID_STATE)
                 if (.not. &
@@ -266,6 +293,51 @@ subroutine CondControlAssignFlowInitCond(realization)
                   option%io_buffer = 'Mole fraction ' // trim(string)
                   call PrintErrMsg(option)
                 endif
+                if (general_salt .and. general_soluble_matrix) then
+                  if (.not. &
+                       (general%porosity%itype == DIRICHLET_BC .or. &
+                         general%porosity%itype == HYDROSTATIC_BC)) then
+                    option%io_buffer = 'Porosity ' // trim(string)
+                    call PrintErrMsg(option)
+                  endif
+                endif
+                if (general_salt) then
+                  if (.not. &
+                       (general%salt_mole_fraction%itype == DIRICHLET_BC .or. &
+                         general%salt_mole_fraction%itype == HYDROSTATIC_BC)) then
+                    option%io_buffer = 'Salt mole fraction ' // trim(string)
+                    call PrintErrMsg(option)
+                  endif
+                endif
+              case(LP_STATE)
+                if (.not. &
+                    (general%liquid_pressure%itype == DIRICHLET_BC .or. &
+                      general%liquid_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Liquid pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (general%mole_fraction%itype == DIRICHLET_BC .or. &
+                      general%mole_fraction%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Mole fraction ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (general_salt .and. general_soluble_matrix) then
+                  if (.not. &
+                       (general%porosity%itype == DIRICHLET_BC .or. &
+                         general%porosity%itype == HYDROSTATIC_BC)) then
+                    option%io_buffer = 'Porosity ' // trim(string)
+                    call PrintErrMsg(option)
+                  endif
+                endif
+                if (general_salt .and. .not. general_soluble_matrix) then
+                  if (.not. &
+                       (general%precipitate_saturation%itype == DIRICHLET_BC .or. &
+                         general%precipitate_saturation%itype == HYDROSTATIC_BC)) then
+                    option%io_buffer = 'Precipitate saturation ' // trim(string)
+                    call PrintErrMsg(option)
+                  endif
+                endif
               case(GAS_STATE)
                 if (.not. &
                     (general%gas_pressure%itype == DIRICHLET_BC .or. &
@@ -279,15 +351,37 @@ subroutine CondControlAssignFlowInitCond(realization)
                   option%io_buffer = 'Gas saturation ' // trim(string)
                   call PrintErrMsg(option)
                 endif
+             case(GP_STATE)
+                if (.not. &
+                     (general%gas_pressure%itype == DIRICHLET_BC .or. &
+                     general%gas_pressure%itype == HYDROSTATIC_BC)) then
+                   option%io_buffer = 'Gas pressure ' // trim(string)
+                   call PrintErrMsg(option)
+                endif
+                if (general_salt .and. .not. general_soluble_matrix) then
+                  if (.not. &
+                       (general%mole_fraction%itype == DIRICHLET_BC .or. &
+                        general%mole_fraction%itype == HYDROSTATIC_BC)) then
+                       option%io_buffer = 'Gas saturation ' // trim(string)
+                     call PrintErrMsg(option)
+                  endif
+                elseif (general_salt .and. general_soluble_matrix) then
+                  if (.not. &
+                       (general%porosity%itype == DIRICHLET_BC .or. &
+                        general%porosity%itype == HYDROSTATIC_BC)) then
+                        option%io_buffer = 'Porosity ' // trim(string)
+                    call PrintErrMsg(option)
+                  endif
+                endif
             end select
             if (.not. &
                 (general%temperature%itype == DIRICHLET_BC .or. &
                   general%temperature%itype == HYDROSTATIC_BC)) then
               option%io_buffer = 'Temperature ' // trim(string)
               call PrintErrMsg(option)
-            endif                              
-              
-              
+            endif
+
+
             do icell=1,initial_condition%region%num_cells
               local_id = initial_condition%region%cell_ids(icell)
               ghosted_id = grid%nL2G(local_id)
@@ -316,6 +410,28 @@ subroutine CondControlAssignFlowInitCond(realization)
                       general%gas_pressure%dataset%rarray(1) - &
                       p_sat
                   endif
+                case(LGP_STATE)
+                  xx_p(ibegin+GENERAL_GAS_PRESSURE_DOF) = &
+                       general%gas_pressure%dataset%rarray(1)
+                  xx_p(ibegin+GENERAL_GAS_SATURATION_DOF) = &
+                       general%gas_saturation%dataset%rarray(1)
+                  temperature = general%temperature%dataset%rarray(1)
+                  if (general_2ph_energy_dof == GENERAL_TEMPERATURE_INDEX) then
+                     xx_p(ibegin+GENERAL_ENERGY_DOF) = temperature
+                  else
+                     call EOSWaterSaturationPressure(temperature,p_sat,ierr)
+                     ! p_a = p_g - p_s(T)
+                     xx_p(ibegin+GENERAL_2PH_STATE_AIR_PRESSURE_DOF) = &
+                          general%gas_pressure%dataset%rarray(1) - &
+                          p_sat
+                  endif
+                  if (general_salt .and. .not. general_soluble_matrix) then
+                    xx_p(ibegin+GENERAL_PRECIPITATE_SAT_DOF) = &
+                         general%precipitate_saturation%dataset%rarray(1)
+                  elseif (general_salt .and. general_soluble_matrix) then
+                    xx_p(ibegin+GENERAL_POROSITY_DOF) = &
+                         general%porosity%dataset%rarray(1)
+                  endif
                 case(LIQUID_STATE)
                   xx_p(ibegin+GENERAL_LIQUID_PRESSURE_DOF) = &
                     general%liquid_pressure%dataset%rarray(1)
@@ -323,6 +439,10 @@ subroutine CondControlAssignFlowInitCond(realization)
                     general%mole_fraction%dataset%rarray(1)
                   xx_p(ibegin+GENERAL_ENERGY_DOF) = &
                     general%temperature%dataset%rarray(1)
+                  if (general_salt) then
+                    xx_p(ibegin+GENERAL_LIQUID_STATE_S_MOLE_DOF) = &
+                      general%salt_mole_fraction%dataset%rarray(1)
+                  endif
                 case(GAS_STATE)
                   xx_p(ibegin+GENERAL_GAS_PRESSURE_DOF) = &
                     general%gas_pressure%dataset%rarray(1)
@@ -337,6 +457,41 @@ subroutine CondControlAssignFlowInitCond(realization)
                   endif
                   xx_p(ibegin+GENERAL_ENERGY_DOF) = &
                     general%temperature%dataset%rarray(1)
+                case(LP_STATE)
+                  xx_p(ibegin+GENERAL_LIQUID_PRESSURE_DOF) = &
+                       general%liquid_pressure%dataset%rarray(1)
+                  if (general_salt .and. .not. general_soluble_matrix) then
+                    xx_p(ibegin+GENERAL_PRECIPITATE_SAT_DOF) = &
+                         general%precipitate_saturation%dataset%rarray(1)
+                  elseif (general_salt .and. general_soluble_matrix) then
+                     xx_p(ibegin+GENERAL_POROSITY_DOF) = &
+                          general%porosity%dataset%rarray(1)
+                  endif
+                  xx_p(ibegin+GENERAL_ENERGY_DOF) = &
+                       general%temperature%dataset%rarray(1)
+                  xx_p(ibegin+GENERAL_LIQUID_STATE_X_MOLE_DOF) = &
+                     general%mole_fraction%dataset%rarray(1)
+                case(GP_STATE)
+                  xx_p(ibegin+GENERAL_GAS_PRESSURE_DOF) = &
+                       general%gas_pressure%dataset%rarray(1)
+                  if (general_gas_air_mass_dof == &
+                       GENERAL_AIR_PRESSURE_INDEX) then
+                     xx_p(ibegin+GENERAL_GAS_STATE_AIR_PRESSURE_DOF) = &
+                          general%gas_pressure%dataset%rarray(1) * &
+                          general%mole_fraction%dataset%rarray(1)
+                  else
+                     xx_p(ibegin+GENERAL_GAS_STATE_AIR_PRESSURE_DOF) = &
+                          general%mole_fraction%dataset%rarray(1)
+                  endif
+                  xx_p(ibegin+GENERAL_ENERGY_DOF) = &
+                       general%temperature%dataset%rarray(1)
+                  if (general_salt .and. .not. general_soluble_matrix) then
+                    xx_p(ibegin+GENERAL_PRECIPITATE_SAT_DOF) = &
+                         general%precipitate_saturation%dataset%rarray(1)
+                  elseif (general_salt .and. general_soluble_matrix) then
+                    xx_p(ibegin+GENERAL_POROSITY_DOF) = &
+                         general%porosity%dataset%rarray(1)
+                  endif
               end select
               cur_patch%aux%Global%auxvars(ghosted_id)%istate = &
                 initial_condition%flow_condition%iphase
@@ -365,12 +520,12 @@ subroutine CondControlAssignFlowInitCond(realization)
           endif
           initial_condition => initial_condition%next
         enddo
-     
-        call VecRestoreArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+
+        call VecRestoreArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
 
       case(H_MODE)
-        
-        call VecGetArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+
+        call VecGetArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
 
         xx_p = UNINITIALIZED_DOUBLE
 
@@ -393,21 +548,7 @@ subroutine CondControlAssignFlowInitCond(realization)
               trim(initial_condition%flow_condition%name) // &
               '" must be of type Dirichlet or Hydrostatic'
             ! error checking.  the data must match the state
-            ! MAN: this needs to be expanded.
             select case(initial_condition%flow_condition%iphase)
-              case(GA_STATE)
-                if (.not. &
-                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
-                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
-                  option%io_buffer = 'Gas pressure ' // trim(string)
-                  call PrintErrMsg(option)
-                endif
-                if (.not. &
-                    (hydrate%gas_saturation%itype == DIRICHLET_BC .or. &
-                      hydrate%gas_saturation%itype == HYDROSTATIC_BC)) then
-                  option%io_buffer = 'Gas saturation ' // trim(string)
-                  call PrintErrMsg(option)
-                endif
               case(L_STATE)
                 if (.not. &
                     (hydrate%liquid_pressure%itype == DIRICHLET_BC .or. &
@@ -421,6 +562,13 @@ subroutine CondControlAssignFlowInitCond(realization)
                   option%io_buffer = 'Mole fraction ' // trim(string)
                   call PrintErrMsg(option)
                 endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
               case(G_STATE)
                 if (.not. &
                     (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
@@ -434,14 +582,266 @@ subroutine CondControlAssignFlowInitCond(realization)
                   option%io_buffer = 'Gas saturation ' // trim(string)
                   call PrintErrMsg(option)
                 endif
-              case (HA_STATE)
-            end select
-            if (.not. &
-                (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
                   hydrate%temperature%itype == HYDROSTATIC_BC)) then
-              option%io_buffer = 'Temperature ' // trim(string)
-              call PrintErrMsg(option)
-            endif
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+              case(H_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+              case(I_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+              case(GA_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%gas_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(HG_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%gas_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(HA_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%hydrate_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%hydrate_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Hydrate saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(HI_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%hydrate_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%hydrate_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Hydrate saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(GI_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%ice_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%ice_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Ice saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(AI_STATE)
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%mole_fraction%itype == DIRICHLET_BC .or. &
+                      hydrate%mole_fraction%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Liquid Mole Fraction ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%liquid_saturation%itype == DIRICHLET_BC .or. &
+                  hydrate%liquid_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Liquid saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(HGA_STATE)
+                if (.not. &
+                    (hydrate%liquid_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%liquid_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Liquid saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%hydrate_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%hydrate_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Hydrate saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                   (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                  hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(HAI_STATE)
+
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%liquid_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%liquid_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Liquid saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%ice_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%ice_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Ice saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+              case(HGI_STATE)
+
+                if (.not. &
+                    (hydrate%ice_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%ice_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Ice saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%hydrate_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%hydrate_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Hydrate saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%temperature%itype == DIRICHLET_BC .or. &
+                      hydrate%temperature%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Temperature ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+
+              case(GAI_STATE)
+
+                if (.not. &
+                    (hydrate%gas_pressure%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_pressure%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas pressure ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%liquid_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%liquid_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Liquid saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%ice_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%ice_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Ice saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+
+              case(HGAI_STATE)
+
+                if (.not. &
+                    (hydrate%gas_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%gas_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Gas saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%liquid_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%liquid_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Liquid saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+                if (.not. &
+                    (hydrate%ice_saturation%itype == DIRICHLET_BC .or. &
+                      hydrate%ice_saturation%itype == HYDROSTATIC_BC)) then
+                  option%io_buffer = 'Ice saturation ' // trim(string)
+                  call PrintErrMsg(option)
+                endif
+
+
+            end select
 
 
             do icell=1,initial_condition%region%num_cells
@@ -487,14 +887,17 @@ subroutine CondControlAssignFlowInitCond(realization)
                   xx_p(ibegin+HYDRATE_ENERGY_DOF) = &
                     hydrate%temperature%dataset%rarray(1)
                 case(GA_STATE)
-                  xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
-                    hydrate%gas_pressure%dataset%rarray(1)
+                  if (associated(hydrate%gas_pressure)) then
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                      hydrate%gas_pressure%dataset%rarray(1)
+                  else
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                      hydrate%liquid_pressure%dataset%rarray(1)
+                  endif
                   xx_p(ibegin+HYDRATE_GAS_SATURATION_DOF) = &
                     hydrate%gas_saturation%dataset%rarray(1)
                   temperature = hydrate%temperature%dataset%rarray(1)
-                  if (hydrate_2ph_energy_dof == HYDRATE_TEMPERATURE_INDEX) then
-                    xx_p(ibegin+HYDRATE_ENERGY_DOF) = temperature
-                  endif
+                  xx_p(ibegin+HYDRATE_ENERGY_DOF) = temperature
                 case(HG_STATE)
                   xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
                     hydrate%gas_pressure%dataset%rarray(1)
@@ -529,22 +932,32 @@ subroutine CondControlAssignFlowInitCond(realization)
                   xx_p(ibegin+HYDRATE_ENERGY_DOF) = &
                     hydrate%temperature%dataset%rarray(1)
                 case(AI_STATE)
-                  xx_p(ibegin+HYDRATE_LIQUID_PRESSURE_DOF) = &
-                    hydrate%liquid_pressure%dataset%rarray(1)
+                  if (associated(hydrate%gas_pressure)) then
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                      hydrate%gas_pressure%dataset%rarray(1)
+                  else
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                      hydrate%liquid_pressure%dataset%rarray(1)
+                  endif
                   xx_p(ibegin+HYDRATE_GAS_SATURATION_DOF) = &
                     hydrate%mole_fraction%dataset%rarray(1)
                   xx_p(ibegin+HYDRATE_ENERGY_DOF) = &
-                    hydrate%temperature%dataset%rarray(1)
+                    hydrate%liquid_saturation%dataset%rarray(1)
                 case(HGA_STATE)
                   xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
-                      hydrate%gas_pressure%dataset%rarray(1)
+                      hydrate%liquid_saturation%dataset%rarray(1)
                   xx_p(ibegin+HYDRATE_GAS_SATURATION_DOF) = &
                     hydrate%hydrate_saturation%dataset%rarray(1)
                   xx_p(ibegin+HYDRATE_ENERGY_DOF) = &
                     hydrate%temperature%dataset%rarray(1)
                 case(HAI_STATE)
-                  xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                  if (associated(hydrate%gas_pressure)) then
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
                       hydrate%gas_pressure%dataset%rarray(1)
+                  else
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                      hydrate%liquid_pressure%dataset%rarray(1)
+                  endif
                   xx_p(ibegin+HYDRATE_GAS_SATURATION_DOF) = &
                     hydrate%liquid_saturation%dataset%rarray(1)
                   xx_p(ibegin+HYDRATE_ENERGY_DOF) = &
@@ -557,13 +970,18 @@ subroutine CondControlAssignFlowInitCond(realization)
                   xx_p(ibegin+HYDRATE_ENERGY_DOF) = &
                     hydrate%temperature%dataset%rarray(1)
                 case(GAI_STATE)
-                  xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                  if (associated(hydrate%gas_pressure)) then
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
                       hydrate%gas_pressure%dataset%rarray(1)
+                  else
+                    xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
+                      hydrate%liquid_pressure%dataset%rarray(1)
+                  endif
                   xx_p(ibegin+HYDRATE_GAS_SATURATION_DOF) = &
                     hydrate%liquid_saturation%dataset%rarray(1)
                   xx_p(ibegin+HYDRATE_ENERGY_DOF) = &
                     hydrate%ice_saturation%dataset%rarray(1)
-                case(QUAD_STATE)
+                case(HGAI_STATE)
                   xx_p(ibegin+HYDRATE_GAS_PRESSURE_DOF) = &
                       hydrate%liquid_saturation%dataset%rarray(1)
                   xx_p(ibegin+HYDRATE_GAS_SATURATION_DOF) = &
@@ -599,11 +1017,11 @@ subroutine CondControlAssignFlowInitCond(realization)
           initial_condition => initial_condition%next
         enddo
 
-        call VecRestoreArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+        call VecRestoreArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
 
       case default
         ! assign initial conditions values to domain
-        call VecGetArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+        call VecGetArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
 
         xx_p = UNINITIALIZED_DOUBLE
 
@@ -627,12 +1045,13 @@ subroutine CondControlAssignFlowInitCond(realization)
                 endif
               class is(dataset_common_hdf5_type)
                 dataset_flag(idof) = PETSC_TRUE
-                call VecRestoreArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+                call VecRestoreArrayF90(field%flow_xx,xx_p, &
+                                        ierr);CHKERRQ(ierr)
                 call ConditionControlMapDatasetToVec(realization, &
                         initial_condition%flow_condition% &
                           sub_condition_ptr(idof)%ptr%dataset,idof, &
                         field%flow_xx,GLOBAL)
-                call VecGetArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+                call VecGetArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
             end select
           enddo
           if (.not.associated(initial_condition%flow_aux_real_var) .and. &
@@ -679,10 +1098,10 @@ subroutine CondControlAssignFlowInitCond(realization)
           enddo
           initial_condition => initial_condition%next
         enddo
-        call VecRestoreArrayF90(field%flow_xx,xx_p, ierr);CHKERRQ(ierr)
+        call VecRestoreArrayF90(field%flow_xx,xx_p,ierr);CHKERRQ(ierr)
 
-    end select 
-   
+    end select
+
     cur_patch => cur_patch%next
   enddo
 
@@ -691,12 +1110,12 @@ subroutine CondControlAssignFlowInitCond(realization)
     case default
       call GlobalUpdateState(realization)
   end select
-  
+
   ! update dependent vectors
   call DiscretizationGlobalToLocal(discretization,field%flow_xx, &
-                                   field%flow_xx_loc,NFLOWDOF)  
+                                   field%flow_xx_loc,NFLOWDOF)
 
-  call VecCopy(field%flow_xx, field%flow_yy, ierr);CHKERRQ(ierr)
+  call VecCopy(field%flow_xx,field%flow_yy,ierr);CHKERRQ(ierr)
 
   ! cannot perform VecMin on local vector as the ghosted corner values are not
   ! updated during the local to local update.
@@ -715,12 +1134,12 @@ end subroutine CondControlAssignFlowInitCond
 ! ************************************************************************** !
 
 subroutine CondControlAssignRTTranInitCond(realization)
-  ! 
+  !
   ! Assigns transport initial conditions to model
-  ! 
+  !
   ! Author: Glenn Hammond
   ! Date: 11/02/07, 10/18/11
-  ! 
+  !
 
   use Realization_Subsurface_class
   use Discretization_module
@@ -739,24 +1158,25 @@ subroutine CondControlAssignRTTranInitCond(realization)
   use Reactive_Transport_Aux_module
   use Reaction_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   use Reaction_module
   use HDF5_module
-  
+  use Secondary_Continuum_Aux_module
+
   implicit none
-  
+
   class(realization_subsurface_type) :: realization
-  
-  PetscInt :: icell, iconn, idof, isub_condition, temp_int, iimmobile
+
+  PetscInt :: icell, idof, temp_int, iimmobile, cell
   PetscInt :: local_id, ghosted_id, iend, ibegin
   PetscInt :: irxn, isite, imnrl, ikinrxn
-  PetscReal, pointer :: xx_p(:), xx_loc_p(:), vec_p(:), vec_p2(:)
+  PetscReal, pointer :: xx_p(:), xx_loc_p(:), vec_p(:)
   Vec :: vec1_loc
   Vec :: vec2_loc
   PetscErrorCode :: ierr
-  
+
   type(option_type), pointer :: option
-  type(field_type), pointer :: field  
+  type(field_type), pointer :: field
   type(patch_type), pointer :: patch
   type(grid_type), pointer :: grid
   type(discretization_type), pointer :: discretization
@@ -766,8 +1186,11 @@ subroutine CondControlAssignRTTranInitCond(realization)
   type(reactive_transport_auxvar_type), pointer :: rt_auxvars(:)
   type(global_auxvar_type), pointer :: global_auxvars(:)
   class(tran_constraint_coupler_rt_type), pointer :: constraint_coupler
+  class(tran_constraint_coupler_rt_type), pointer :: sec_constraint_coupler
   class(tran_constraint_rt_type), pointer :: constraint
-  class(material_auxvar_type), pointer :: material_auxvars(:)
+  type(material_auxvar_type), pointer :: material_auxvars(:)
+  class(tran_constraint_rt_type), pointer :: sec_tran_constraint
+  type(sec_transport_type), pointer :: rt_sec_transport_vars(:)
 
   PetscInt :: iphase
   PetscInt :: offset
@@ -779,20 +1202,21 @@ subroutine CondControlAssignRTTranInitCond(realization)
   PetscBool :: use_aq_dataset
   PetscReal :: ave_num_iterations
   PetscReal :: tempreal
+  PetscReal, parameter :: epsilon = 1.d-16
   PetscInt :: prev_equilibrated_ghosted_id
   PetscReal, pointer :: flow_xx_p(:)
   PetscLogDouble :: tstart, tend
-  
+
   option => realization%option
   discretization => realization%discretization
   field => realization%field
   patch => realization%patch
   reaction => realization%reaction
-  
+
   iphase = 1
   vec1_loc = PETSC_NULL_VEC
   vec2_loc = PETSC_NULL_VEC
-  
+
   cur_patch => realization%patch_list%first
   do
     if (.not.associated(cur_patch)) exit
@@ -806,20 +1230,31 @@ subroutine CondControlAssignRTTranInitCond(realization)
     call VecGetArrayF90(field%tran_xx,xx_p,ierr);CHKERRQ(ierr)
     select case(option%iflowmode)
       case(MPH_MODE)
-        call VecGetArrayF90(field%flow_xx,flow_xx_p, ierr);CHKERRQ(ierr)
+        call VecGetArrayF90(field%flow_xx,flow_xx_p,ierr);CHKERRQ(ierr)
     end select
-      
+
     xx_p = UNINITIALIZED_DOUBLE
-      
+
     initial_condition => cur_patch%initial_condition_list%first
     do
-      
+
       if (.not.associated(initial_condition)) exit
-        
+
       constraint_coupler => &
         TranConstraintCouplerRTCast(initial_condition%tran_condition% &
                                       cur_constraint_coupler)
       constraint => TranConstraintRTCast(constraint_coupler%constraint)
+      if (option%use_sc) then
+        rt_sec_transport_vars => patch%aux%SC_RT%sec_transport_vars
+        if (associated(initial_condition%tran_condition%sec_constraint_coupler)) then
+          sec_constraint_coupler => TranConstraintCouplerRTCast(initial_condition%tran_condition% &
+                                                                  sec_constraint_coupler)
+          sec_tran_constraint => TranConstraintRTCast(sec_constraint_coupler%constraint)
+        else
+          sec_constraint_coupler => constraint_coupler
+          sec_tran_constraint => constraint
+        endif
+      endif
 
       equilibrate_at_each_cell = constraint_coupler%equilibrate_at_each_cell
       use_aq_dataset = PETSC_FALSE
@@ -852,9 +1287,8 @@ subroutine CondControlAssignRTTranInitCond(realization)
                           string,option)
             if (vec1_loc == PETSC_NULL_VEC) then
               ! cannot use field%work_loc as it is used within ConditionCo...
-              call VecDuplicate(field%work_loc,vec1_loc, &
-                                ierr);CHKERRQ(ierr)
-            endif 
+              call VecDuplicate(field%work_loc,vec1_loc,ierr);CHKERRQ(ierr)
+            endif
             idof = ONE_INTEGER
             call ConditionControlMapDatasetToVec(realization,dataset,idof, &
                                                  vec1_loc,LOCAL)
@@ -869,7 +1303,7 @@ subroutine CondControlAssignRTTranInitCond(realization)
           endif
         enddo
       endif
-          
+
       ! read in heterogeneous mineral surface area
       if (associated(constraint%minerals)) then
         do imnrl = 1, reaction%mineral%nkinmnrl
@@ -882,13 +1316,13 @@ subroutine CondControlAssignRTTranInitCond(realization)
                           string,option)
             if (vec1_loc == PETSC_NULL_VEC) then
               ! cannot use field%work_loc as it is used within ConditionCo...
-              call VecDuplicate(field%work_loc,vec1_loc, &
-                                ierr);CHKERRQ(ierr)
-            endif 
+              call VecDuplicate(field%work_loc,vec1_loc,ierr);CHKERRQ(ierr)
+            endif
             idof = ONE_INTEGER
             call ConditionControlMapDatasetToVec(realization,dataset,idof, &
                                                  vec1_loc,LOCAL)
-            call VecScale(vec1_loc,constraint%minerals% &
+            call VecScale(vec1_loc, &
+                          constraint%minerals% &
                             constraint_area_conv_factor(imnrl), &
                           ierr);CHKERRQ(ierr)
             if (constraint%minerals%area_per_unit_mass(imnrl)) then
@@ -899,19 +1333,30 @@ subroutine CondControlAssignRTTranInitCond(realization)
                                 constraint_vol_frac_string(imnrl), &
                               string,option)
                 if (vec2_loc == PETSC_NULL_VEC) then
-                  call VecDuplicate(vec1_loc,vec2_loc, &
-                                    ierr);CHKERRQ(ierr)
-                endif 
+                  call VecDuplicate(vec1_loc,vec2_loc,ierr);CHKERRQ(ierr)
+                endif
                 idof = ONE_INTEGER
                 call ConditionControlMapDatasetToVec(realization,dataset, &
                                                      idof,vec2_loc,LOCAL)
-                call VecPointwiseMult(vec1_loc,vec1_loc, &
-                                      vec2_loc,ierr);CHKERRQ(ierr)
+                call VecPointwiseMult(vec1_loc,vec1_loc,vec2_loc, &
+                                      ierr);CHKERRQ(ierr)
               else
                 call VecScale(vec1_loc, &
-                              constraint%minerals% &
-                                constraint_vol_frac(imnrl), &
+                              constraint%minerals%constraint_vol_frac(imnrl), &
                               ierr);CHKERRQ(ierr)
+              endif
+              call DiscretizationLocalToGlobal(discretization,vec1_loc, &
+                                               field%work,ONEDOF)
+              call VecMin(field%work,PETSC_NULL_INTEGER,tempreal, &
+                          ierr);CHKERRQ(ierr)
+              if (tempreal < epsilon) then
+                option%io_buffer = 'A zero volume fraction assigned to &
+                  &mineral "' // &
+                  trim(reaction%mineral%kinmnrl_names(imnrl)) // &
+                  '" in constraint "' // trim(constraint%name) // &
+                  '" prevents the use of a mass-based surface area in the &
+                  &constraint.'
+                call PrintErrMsg(option)
               endif
             endif
             call VecGetArrayF90(vec1_loc,vec_p,ierr);CHKERRQ(ierr)
@@ -925,7 +1370,7 @@ subroutine CondControlAssignRTTranInitCond(realization)
           endif
         enddo
       endif
-          
+
       ! read in heterogeneous immobile
       if (associated(constraint%immobile_species)) then
         do iimmobile = 1, reaction%immobile%nimmobile
@@ -937,9 +1382,8 @@ subroutine CondControlAssignRTTranInitCond(realization)
                 string,option)
             if (vec1_loc == PETSC_NULL_VEC) then
               ! cannot use field%work_loc as it is used within ConditionCo...
-              call VecDuplicate(field%work_loc,vec1_loc, &
-                                ierr);CHKERRQ(ierr)
-            endif 
+              call VecDuplicate(field%work_loc,vec1_loc,ierr);CHKERRQ(ierr)
+            endif
             idof = ONE_INTEGER
             call ConditionControlMapDatasetToVec(realization,dataset,idof, &
                                                  vec1_loc,LOCAL)
@@ -953,16 +1397,16 @@ subroutine CondControlAssignRTTranInitCond(realization)
           endif
         enddo
       endif
-          
+
       if (.not.option%use_isothermal) then
         equilibrate_at_each_cell = PETSC_TRUE
       endif
-        
+
       if (use_aq_dataset) then
         call VecGetArrayF90(field%tran_xx_loc,xx_loc_p,ierr);CHKERRQ(ierr)
         call PetscTime(tstart,ierr);CHKERRQ(ierr)
       endif
-        
+
       ave_num_iterations = 0.d0
       prev_equilibrated_ghosted_id = 0
       do icell=1,initial_condition%region%num_cells
@@ -978,7 +1422,7 @@ subroutine CondControlAssignRTTranInitCond(realization)
           if (use_aq_dataset) then
             offset = (ghosted_id-1)*option%ntrandof
             do iaqdataset = 1, num_aq_datasets
-              ! remember that xx_loc_p holds the data set values that 
+              ! remember that xx_loc_p holds the data set values that
               ! were read in
               temp_int = aq_dataset_to_idof(iaqdataset)
               constraint%aqueous_species%constraint_conc(temp_int) = &
@@ -988,8 +1432,9 @@ subroutine CondControlAssignRTTranInitCond(realization)
           option%iflag = grid%nG2A(grid%nL2G(local_id))
           if (prev_equilibrated_ghosted_id > 0) then
             ! copy molalities from previous equilibrated auxvar as initial guess
-            call RTAuxVarCopyInitialGuess(rt_auxvars(ghosted_id), &
-              rt_auxvars(prev_equilibrated_ghosted_id),option)
+            call RTAuxVarCopyInitialGuess( &
+                         rt_auxvars(prev_equilibrated_ghosted_id), &
+                         rt_auxvars(ghosted_id),option)
           endif
           call ReactionEquilibrateConstraint(rt_auxvars(ghosted_id), &
             global_auxvars(ghosted_id),material_auxvars(ghosted_id), &
@@ -1022,7 +1467,7 @@ subroutine CondControlAssignRTTranInitCond(realization)
         ! ibegin is the local non-ghosted offset: (local_id-1)*option%ntrandof+1
         offset = ibegin + reaction%offset_aqueous - 1
         ! primary aqueous concentrations
-        do idof = 1, reaction%naqcomp 
+        do idof = 1, reaction%naqcomp
           xx_p(offset+idof) = &
             constraint%aqueous_species%basis_molarity(idof) / &
             global_auxvars(ghosted_id)%den_kg(iphase)*1000.d0 ! convert molarity -> molality
@@ -1073,17 +1518,6 @@ subroutine CondControlAssignRTTranInitCond(realization)
           rt_auxvars(ghosted_id)%srfcplxrxn_free_site_conc = &
             constraint_coupler%rt_auxvar%srfcplxrxn_free_site_conc
         endif
-        ! colloids fractions
-        if (associated(constraint%colloids)) then
-          offset = ibegin + reaction%offset_colloid - 1
-          do idof = 1, reaction%ncoll ! primary aqueous concentrations
-            xx_p(offset+idof) = &
-              constraint%colloids%basis_conc_mob(idof) / &
-              global_auxvars(ghosted_id)%den_kg(iphase)*1000.d0 ! convert molarity -> molality
-            rt_auxvars(ghosted_id)%colloid%conc_imb(idof) = &
-              constraint%colloids%basis_conc_imb(idof)
-          enddo
-        endif
         ! immobile
         if (associated(constraint%immobile_species)) then
           offset = ibegin + reaction%offset_immobile - 1
@@ -1100,10 +1534,35 @@ subroutine CondControlAssignRTTranInitCond(realization)
             endif
           enddo
         endif
+        if (option%use_sc) then
+          reaction%mc_flag = 1
+          do cell = 1, rt_sec_transport_vars(ghosted_id)%ncells
+            call ReactionEquilibrateConstraint( &
+                                     rt_sec_transport_vars(ghosted_id)% &
+                                       sec_rt_auxvar(cell), &
+                                     global_auxvars(ghosted_id), &
+                                     material_auxvars(ghosted_id),reaction, &
+                                     sec_tran_constraint, &
+                                     sec_constraint_coupler%num_iterations, &
+                                     PETSC_FALSE,option)
+            if (option%transport%sc_fixed_water_density) then
+              ! convert molality to molarity so that secondary continuum is
+              ! solely molarity (independent of fluid density)
+              rt_sec_transport_vars(ghosted_id)% &
+                      sec_rt_auxvar(cell)%pri_molal = &
+                global_auxvars(ghosted_id)%den_kg(1) * 1.d-3 * &
+                rt_sec_transport_vars(ghosted_id)%sec_rt_auxvar(cell)%pri_molal
+            endif
+            rt_sec_transport_vars(ghosted_id)%updated_conc(:,cell) =  &
+              rt_sec_transport_vars(ghosted_id)%sec_rt_auxvar(cell)%pri_molal
+          enddo
+          reaction%mc_flag = 0
+        endif
       enddo ! icell=1,initial_condition%region%num_cells
       if (use_aq_dataset) then
         call PetscTime(tend,ierr);CHKERRQ(ierr)
-        call VecRestoreArrayF90(field%tran_xx_loc,xx_loc_p,ierr);CHKERRQ(ierr)
+        call VecRestoreArrayF90(field%tran_xx_loc,xx_loc_p, &
+                                ierr);CHKERRQ(ierr)
         ave_num_iterations = ave_num_iterations / &
           initial_condition%region%num_cells
         write(option%io_buffer,&
@@ -1116,16 +1575,16 @@ subroutine CondControlAssignRTTranInitCond(realization)
       endif
       initial_condition => initial_condition%next
     enddo
-      
-    call VecRestoreArrayF90(field%tran_xx,xx_p, ierr);CHKERRQ(ierr)
+
+    call VecRestoreArrayF90(field%tran_xx,xx_p,ierr);CHKERRQ(ierr)
     select case(option%iflowmode)
       case(MPH_MODE)
-        call VecRestoreArrayF90(field%flow_xx,flow_xx_p, ierr);CHKERRQ(ierr)
+        call VecRestoreArrayF90(field%flow_xx,flow_xx_p,ierr);CHKERRQ(ierr)
     end select
 
     cur_patch => cur_patch%next
   enddo
-  
+
   ! check to ensure that minimum concentration is not less than or equal
   ! to zero
   call VecMin(field%tran_xx,PETSC_NULL_INTEGER,tempreal,ierr);CHKERRQ(ierr)
@@ -1165,11 +1624,11 @@ subroutine CondControlAssignRTTranInitCond(realization)
       'using a small value such as 1.e-20 or 1.e-40 instead of zero.'
     call PrintErrMsg(option)
   endif
-  
+
   ! update dependent vectors
   call DiscretizationGlobalToLocal(discretization,field%tran_xx, &
-                                   field%tran_xx_loc,NTRANDOF)  
-  call VecCopy(field%tran_xx, field%tran_yy, ierr);CHKERRQ(ierr)
+                                   field%tran_xx_loc,NTRANDOF)
+  call VecCopy(field%tran_xx,field%tran_yy,ierr);CHKERRQ(ierr)
 
   ! override initial conditions if they are to be read from a file
   if (len_trim(option%initialize_transport_filename) > 1) then
@@ -1202,13 +1661,13 @@ end subroutine CondControlAssignRTTranInitCond
 ! ************************************************************************** !
 
 subroutine CondControlAssignNWTranInitCond(realization)
-  ! 
-  ! Assigns transport initial conditions to model, and equilibrates the 
+  !
+  ! Assigns transport initial conditions to model, and equilibrates the
   ! initial conditions according to the constraint types.
-  ! 
+  !
   ! Author: Jenn Frederick
   ! Date: 04/02/2019
-  ! 
+  !
 
   use Realization_Subsurface_class
   use Discretization_module
@@ -1223,28 +1682,28 @@ subroutine CondControlAssignNWTranInitCond(realization)
   use NW_Transport_module
   use NW_Transport_Aux_module
   use NWT_Equilibrium_module
-  use Material_Aux_class
+  use Material_Aux_module
   use HDF5_module
-  
+
   implicit none
-  
+
   class(realization_subsurface_type) :: realization
-  
+
   PetscInt :: icell, idof
   PetscInt :: local_id, ghosted_id, iend, ibegin
   PetscReal, pointer :: xx_p(:)
   Vec :: vec1_loc
   Vec :: vec2_loc
   PetscErrorCode :: ierr
-  
+
   type(option_type), pointer :: option
-  type(field_type), pointer :: field  
+  type(field_type), pointer :: field
   type(grid_type), pointer :: grid
   type(discretization_type), pointer :: discretization
   type(coupler_type), pointer :: initial_condition
   type(patch_type), pointer :: cur_patch
   class(reaction_nw_type), pointer :: reaction_nw
-  class(material_auxvar_type), pointer :: material_auxvars(:)
+  type(material_auxvar_type), pointer :: material_auxvars(:)
   type(global_auxvar_type), pointer :: global_auxvars(:)
   type(nw_transport_auxvar_type), pointer :: nwt_auxvars(:)
   class(tran_constraint_coupler_nwt_type), pointer :: constraint_coupler
@@ -1254,18 +1713,18 @@ subroutine CondControlAssignNWTranInitCond(realization)
   PetscInt :: offset
   character(len=MAXSTRINGLENGTH) :: string, string2
   PetscReal :: tempreal
-  
+
   option => realization%option
   discretization => realization%discretization
   field => realization%field
   reaction_nw => realization%reaction_nw
-  
+
   iphase = 1
   vec1_loc = PETSC_NULL_VEC
   vec2_loc = PETSC_NULL_VEC
-  
-  !TODO(jenn) Do not allow MPH_MODE with NW Transport. 
-  
+
+  !TODO(jenn) Do not allow MPH_MODE with NW Transport.
+
   cur_patch => realization%patch_list%first
   do
     if (.not.associated(cur_patch)) exit
@@ -1275,20 +1734,20 @@ subroutine CondControlAssignNWTranInitCond(realization)
     global_auxvars => cur_patch%aux%Global%auxvars
     nwt_auxvars => cur_patch%aux%NWT%auxvars
 
-    call VecGetArrayF90(field%tran_xx,xx_p,ierr);CHKERRQ(ierr)   
+    call VecGetArrayF90(field%tran_xx,xx_p,ierr);CHKERRQ(ierr)
     xx_p = UNINITIALIZED_DOUBLE
-      
+
     initial_condition => cur_patch%initial_condition_list%first
     do
       if (.not.associated(initial_condition)) exit
-        
+
       constraint_coupler => &
         TranConstraintCouplerNWTCast(initial_condition%tran_condition% &
                                        cur_constraint_coupler)
       constraint => TranConstraintNWTCast(constraint_coupler%constraint)
-        
+
       do icell=1,initial_condition%region%num_cells
-      
+
         local_id = initial_condition%region%cell_ids(icell)
         ghosted_id = grid%nL2G(local_id)
 
@@ -1305,25 +1764,25 @@ subroutine CondControlAssignNWTranInitCond(realization)
                                       global_auxvars(ghosted_id), &
                                       material_auxvars(ghosted_id), &
                                       option)
-        
-      
+
+
         ! ibegin is the local non-ghosted offset: (local_id-1)*option%ntrandof+1
         offset = ibegin - 1
-        
+
         ! species concentrations
-        do idof = 1, reaction_nw%params%nspecies 
+        do idof = 1, reaction_nw%params%nspecies
           xx_p(offset+idof) = nwt_auxvars(ghosted_id)%total_bulk_conc(idof)
         enddo
 
       enddo ! icell=1,initial_condition%region%num_cells
       initial_condition => initial_condition%next
     enddo
-      
-    call VecRestoreArrayF90(field%tran_xx,xx_p, ierr);CHKERRQ(ierr)
+
+    call VecRestoreArrayF90(field%tran_xx,xx_p,ierr);CHKERRQ(ierr)
 
     cur_patch => cur_patch%next
   enddo
-  
+
   ! check to ensure that minimum concentration is not less than or equal
   ! to zero
   call VecMin(field%tran_xx,PETSC_NULL_INTEGER,tempreal,ierr);CHKERRQ(ierr)
@@ -1356,18 +1815,18 @@ subroutine CondControlAssignNWTranInitCond(realization)
       'using a small value such as 1.e-20 or 1.e-40 instead of zero.'
     call PrintErrMsg(option)
   endif
-  
+
   ! update dependent vectors
   call DiscretizationGlobalToLocal(discretization,field%tran_xx, &
-                                   field%tran_xx_loc,NTRANDOF)  
-  call VecCopy(field%tran_xx, field%tran_yy, ierr);CHKERRQ(ierr)
+                                   field%tran_xx_loc,NTRANDOF)
+  call VecCopy(field%tran_xx,field%tran_yy,ierr);CHKERRQ(ierr)
 
   ! override initial conditions if they are to be read from a file
   if (len_trim(option%initialize_transport_filename) > 1) then
     call CondControlReadTransportIC(realization, &
                                     option%initialize_transport_filename)
   endif
-  
+
   call NWTUpdateAuxVars(realization,PETSC_TRUE,PETSC_FALSE)
 
   if (vec1_loc /= PETSC_NULL_VEC) then
@@ -1383,13 +1842,13 @@ end subroutine CondControlAssignNWTranInitCond
 
 subroutine ConditionControlMapDatasetToVec(realization,dataset,idof, &
                                            mdof_vec,vec_type)
-  ! 
+  !
   ! maps an external dataset to a PETSc vec
   ! representing values at each grid cell
-  ! 
+  !
   ! Author: Glenn Hammond
   ! Date: 03/23/12
-  ! 
+  !
   use Realization_Subsurface_class
   use Option_module
   use Field_module
@@ -1399,7 +1858,7 @@ subroutine ConditionControlMapDatasetToVec(realization,dataset,idof, &
   use Discretization_module
 
   implicit none
-  
+
 
   class(realization_subsurface_type) :: realization
   class(dataset_base_type), pointer :: dataset
@@ -1414,7 +1873,7 @@ subroutine ConditionControlMapDatasetToVec(realization,dataset,idof, &
 
   field => realization%field
   option => realization%option
-  
+
   call VecZeroEntries(field%work,ierr);CHKERRQ(ierr)
   if (associated(dataset)) then
     select type(dataset)
@@ -1427,14 +1886,14 @@ subroutine ConditionControlMapDatasetToVec(realization,dataset,idof, &
                                           string,string2, &
                                           dataset%realization_dependent)
         if (vec_type == GLOBAL) then
-          call VecStrideScatter(field%work,idof-1,mdof_vec, &
-                                INSERT_VALUES,ierr);CHKERRQ(ierr)
+          call VecStrideScatter(field%work,idof-1,mdof_vec,INSERT_VALUES, &
+                                ierr);CHKERRQ(ierr)
         else
           call DiscretizationGlobalToLocal(realization%discretization, &
                                            field%work, &
                                            field%work_loc,ONEDOF)
-          call VecStrideScatter(field%work_loc,idof-1,mdof_vec, &
-                                INSERT_VALUES,ierr);CHKERRQ(ierr)
+          call VecStrideScatter(field%work_loc,idof-1,mdof_vec,INSERT_VALUES, &
+                                ierr);CHKERRQ(ierr)
         endif
       class default
         option%io_buffer = 'Dataset "' // trim(dataset%name) // &
@@ -1448,15 +1907,15 @@ end subroutine ConditionControlMapDatasetToVec
 ! ************************************************************************** !
 
 subroutine CondControlScaleSourceSink(realization)
-  ! 
+  !
   ! Scales select source/sinks based on perms
-  ! 
+  !
   ! Author: Glenn Hammond
   ! Date: 09/03/08, 10/18/11
-  ! 
+  !
 #include "petsc/finclude/petscdmda.h"
   use petscdmda
-      
+
   use Realization_Subsurface_class
   use Discretization_module
   use Region_module
@@ -1467,23 +1926,23 @@ subroutine CondControlScaleSourceSink(realization)
   use Condition_module
   use Grid_module
   use Patch_module
-  use Material_Aux_class
+  use Material_Aux_module
   use Variables_module, only : PERMEABILITY_X
 
   implicit none
-  
+
   class(realization_subsurface_type) :: realization
-  
+
   PetscErrorCode :: ierr
-  
+
   type(option_type), pointer :: option
-  type(field_type), pointer :: field  
+  type(field_type), pointer :: field
   type(patch_type), pointer :: patch
   type(grid_type), pointer :: grid
   type(discretization_type), pointer :: discretization
   type(coupler_type), pointer :: cur_source_sink
   type(connection_set_type), pointer :: cur_connection_set
-  class(material_auxvar_type), pointer :: material_auxvars(:)
+  type(material_auxvar_type), pointer :: material_auxvars(:)
   type(patch_type), pointer :: cur_patch
   PetscReal, pointer :: vec_ptr(:)
   PetscInt :: local_id
@@ -1515,7 +1974,7 @@ subroutine CondControlScaleSourceSink(realization)
   cur_patch => realization%patch_list%first
   do
     if (.not.associated(cur_patch)) exit
-    ! BIG-TIME warning here.  I assume that all source/sink cells are within 
+    ! BIG-TIME warning here.  I assume that all source/sink cells are within
     ! a single patch - geh
 
     grid => cur_patch%grid
@@ -1584,7 +2043,7 @@ subroutine CondControlScaleSourceSink(realization)
       scale = 1.d0/scale
       call VecScale(field%work,scale,ierr);CHKERRQ(ierr)
 
-      call VecGetArrayF90(field%work,vec_ptr, ierr);CHKERRQ(ierr)
+      call VecGetArrayF90(field%work,vec_ptr,ierr);CHKERRQ(ierr)
       do iconn = 1, cur_connection_set%num_connections
         local_id = cur_connection_set%id_dn(iconn)
         select case(option%iflowmode)
@@ -1607,13 +2066,13 @@ end subroutine CondControlScaleSourceSink
 ! ************************************************************************** !
 
 subroutine CondControlReadTransportIC(realization,filename)
-  ! 
+  !
   ! Assigns transport initial condition from
   ! HDF5 file
-  ! 
+  !
   ! Author: Glenn Hammond
   ! Date: 03/05/10
-  ! 
+  !
 
   use Realization_Subsurface_class
   use Option_module
@@ -1624,21 +2083,21 @@ subroutine CondControlReadTransportIC(realization,filename)
   use Reaction_Aux_module
   use Discretization_module
   use HDF5_module
-  
+
   implicit none
-  
+
   class(realization_subsurface_type) :: realization
   character(len=MAXSTRINGLENGTH) :: filename
-  
+
   PetscInt :: local_id, idx, offset, idof
   PetscReal, pointer :: xx_p(:)
   character(len=MAXSTRINGLENGTH) :: group_name
   character(len=MAXSTRINGLENGTH) :: dataset_name
-  PetscReal, pointer :: vec_p(:)  
+  PetscReal, pointer :: vec_p(:)
   PetscErrorCode :: ierr
-  
+
   type(option_type), pointer :: option
-  type(field_type), pointer :: field  
+  type(field_type), pointer :: field
   type(patch_type), pointer :: patch
   type(grid_type), pointer :: grid
   type(discretization_type), pointer :: discretization
@@ -1658,9 +2117,9 @@ subroutine CondControlReadTransportIC(realization,filename)
     grid => cur_patch%grid
 
       ! assign initial conditions values to domain
-    call VecGetArrayF90(field%tran_xx,xx_p, ierr);CHKERRQ(ierr)
+    call VecGetArrayF90(field%tran_xx,xx_p,ierr);CHKERRQ(ierr)
 
-    ! Primary species concentrations for all modes 
+    ! Primary species concentrations for all modes
     do idof = 1, option%ntrandof ! primary aqueous concentrations
       offset = idof
       group_name = ''
@@ -1682,19 +2141,19 @@ subroutine CondControlReadTransportIC(realization,filename)
         xx_p(idx) = vec_p(local_id)
       enddo
       call VecRestoreArrayF90(field%work,vec_p,ierr);CHKERRQ(ierr)
-     
-    enddo     
 
-    call VecRestoreArrayF90(field%tran_xx,xx_p, ierr);CHKERRQ(ierr)
-        
+    enddo
+
+    call VecRestoreArrayF90(field%tran_xx,xx_p,ierr);CHKERRQ(ierr)
+
     cur_patch => cur_patch%next
   enddo
-   
+
   ! update dependent vectors
   call DiscretizationGlobalToLocal(discretization,field%tran_xx, &
-                                   field%tran_xx_loc,NTRANDOF)  
-  call VecCopy(field%tran_xx, field%tran_yy, ierr);CHKERRQ(ierr)
-  
+                                   field%tran_xx_loc,NTRANDOF)
+  call VecCopy(field%tran_xx,field%tran_yy,ierr);CHKERRQ(ierr)
+
 end subroutine CondControlReadTransportIC
 
 end module Condition_Control_module

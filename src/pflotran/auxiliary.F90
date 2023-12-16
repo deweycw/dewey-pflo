@@ -11,7 +11,8 @@ module Auxiliary_module
   use General_Aux_module
   use Hydrate_Aux_module
   use WIPP_Flow_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
+  use Material_Transform_module
   use ERT_Aux_module
   use ZFlow_Aux_module
   use PNF_Aux_module
@@ -38,6 +39,7 @@ module Auxiliary_module
     type(hydrate_type), pointer :: Hydrate
     type(wippflo_type), pointer :: WIPPFlo
     type(material_type), pointer :: Material
+    type(material_transform_type), pointer :: MTransform
     type(ert_type), pointer :: ERT
     type(sc_heat_type), pointer :: SC_heat
     type(sc_rt_type), pointer :: SC_RT
@@ -78,6 +80,7 @@ subroutine AuxInit(aux)
   nullify(aux%Hydrate)
   nullify(aux%WIPPFlo)
   nullify(aux%Material)
+  nullify(aux%MTransform)
   nullify(aux%SC_heat)
   nullify(aux%SC_RT)
   nullify(aux%InlineSurface)
@@ -111,11 +114,12 @@ subroutine AuxDestroy(aux)
   call HydrateAuxDestroy(aux%Hydrate)
   call WIPPFloAuxDestroy(aux%WIPPFlo)
   call MaterialAuxDestroy(aux%Material)
+  call MaterialTransformDestroy(aux%MTransform)
   call ERTAuxDestroy(aux%ERT)
   call SecondaryAuxHeatDestroy(aux%SC_heat)
   call SecondaryAuxRTDestroy(aux%SC_RT)
   call InlineSurfaceAuxDestroy(aux%InlineSurface)
-  ! DO NOT destroy aux%inversion_aux; it is destroyed elsewhere
+  ! DO NOT destroy aux%inversion_forward_aux; it is destroyed elsewhere
 
   nullify(aux%Global)
   nullify(aux%RT)
@@ -128,6 +132,7 @@ subroutine AuxDestroy(aux)
   nullify(aux%Hydrate)
   nullify(aux%WIPPFlo)
   nullify(aux%Material)
+  nullify(aux%MTransform)
   nullify(aux%ERT)
   nullify(aux%SC_Heat)
   nullify(aux%SC_RT)
