@@ -262,7 +262,7 @@ subroutine FeMineralPrecipitationUpdateKineticState(this,rt_auxvar,global_auxvar
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   implicit none
   class(reaction_sandbox_fe_mineral_precipitation_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar

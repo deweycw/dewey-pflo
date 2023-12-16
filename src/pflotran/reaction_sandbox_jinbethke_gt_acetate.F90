@@ -234,7 +234,7 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
   type(mineral_type), pointer :: mineral
   PetscReal :: volume               ! [m^3 bulk volume]
@@ -406,12 +406,12 @@ subroutine JinBethkeGoethiteAcetateUpdateKineticState(this,rt_auxvar,global_auxv
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
-  use Material_Aux_class
+  use Material_Aux_module
   implicit none
   class(reaction_sandbox_gt_acetate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   PetscInt :: imnrl

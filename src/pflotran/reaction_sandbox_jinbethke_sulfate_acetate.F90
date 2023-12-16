@@ -222,7 +222,7 @@ subroutine JinBethkeSulfateEvaluate(this, Residual,Jacobian,compute_derivative, 
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
   PetscReal :: volume               ! [m^3 bulk volume]
   PetscReal :: porosity             ! m^3 pore space / m^3 bulk

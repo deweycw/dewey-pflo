@@ -236,7 +236,7 @@ subroutine JinBethkeFerrihydriteLactateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
   type(mineral_type), pointer :: mineral
   PetscReal :: volume               ! [m^3 bulk volume]
@@ -441,7 +441,7 @@ subroutine JinBethkeFerrihydriteLactateUpdateKineticState(this,rt_auxvar,global_
   class(reaction_sandbox_jinbethke_ferrihydrite_lactate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   PetscInt :: imnrl

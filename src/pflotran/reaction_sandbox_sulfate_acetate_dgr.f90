@@ -211,7 +211,7 @@ subroutine SulfAcDGREvaluate(this, Residual,Jacobian,compute_derivative, &
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
   PetscReal :: molality_to_molarity ! [kg water / L water]
   PetscReal :: ln_conc(reaction%ncomp)

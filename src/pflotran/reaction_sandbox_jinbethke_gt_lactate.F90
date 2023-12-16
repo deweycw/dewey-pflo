@@ -234,7 +234,7 @@ subroutine JinBethkeGoethiteLactateEvaluate(this, Residual,Jacobian,compute_deri
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
   type(mineral_type), pointer :: mineral
   PetscReal :: volume               ! [m^3 bulk volume]
@@ -439,7 +439,7 @@ subroutine JinBethkeGoethiteLactateUpdateKineticState(this,rt_auxvar,global_auxv
   class(reaction_sandbox_jinbethke_goethite_lactate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   PetscInt :: imnrl
