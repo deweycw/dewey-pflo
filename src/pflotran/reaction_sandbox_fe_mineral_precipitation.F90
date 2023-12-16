@@ -156,7 +156,7 @@ subroutine FeMineralPrecipitationEvaluate(this, Residual,Jacobian,compute_deriva
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   PetscInt, parameter :: iphase = 1
   type(mineral_type), pointer :: mineral
   PetscReal :: volume               ! [m^3 bulk volume]
@@ -267,7 +267,7 @@ subroutine FeMineralPrecipitationUpdateKineticState(this,rt_auxvar,global_auxvar
   class(reaction_sandbox_fe_mineral_precipitation_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
-  class(material_auxvar_type) :: material_auxvar
+  type(material_auxvar_type) :: material_auxvar
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
   PetscInt :: imnrl
