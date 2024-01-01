@@ -364,7 +364,8 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
 
   ! only calculate diss rate if mineral is present and O2(aq) below threhsold
   calculate_dissolution = (rt_auxvar%mnrl_volfrac(imnrl) > 0 .and. &
-    O2aq < (this%o2_threshold))
+    O2aq < (this%o2_threshold)) .and. &
+    liquid_saturation > 0.95
 
   Rate = 0.d0
   

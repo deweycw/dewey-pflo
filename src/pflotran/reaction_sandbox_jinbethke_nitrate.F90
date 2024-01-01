@@ -318,8 +318,9 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
     Ftr = Ft
   endif
 
-  ! only denitrification if O2(aq) below threhsold
-  calculate_rate = O2aq < (this%o2_threshold)
+  ! only denitrification if O2(aq) below threhsold and saturated
+  calculate_rate = O2aq < (this%o2_threshold) .and. &
+    liquid_saturation > 0.95
 
 
   Rate = 0.d0

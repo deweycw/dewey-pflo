@@ -307,7 +307,8 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
     Ftr = Ft
   endif
 
-  calculate_rate = (O2aq > (this%o2_threshold))
+  calculate_rate = (O2aq > (this%o2_threshold)) .and. &
+    liquid_saturation > 0.95
 
   Rate = 0.d0
   

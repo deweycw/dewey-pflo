@@ -322,7 +322,8 @@ subroutine JinBethkeSulfateLactateEvaluate(this, Residual,Jacobian,compute_deriv
   endif
 
   ! only sulfate reduction if O2(aq) below threhsold
-  calculate_rate = O2aq < (this%o2_threshold)
+  calculate_rate = O2aq < (this%o2_threshold) .and. &
+    liquid_saturation > 0.95
 
   Rate = 0.d0
   

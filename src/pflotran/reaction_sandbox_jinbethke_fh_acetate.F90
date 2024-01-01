@@ -409,9 +409,10 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
 
   calculate_precip = (sign_<0)
 
-  ! only calculate diss / iron reduciton rate if mineral is present and O2(aq) below threhsold
+  ! only calculate diss / iron reduciton rate if mineral is present and O2(aq) below threhsold and in saturated zone
   calculate_dissolution = (rt_auxvar%mnrl_volfrac(imnrl) > 0 .and. &
-    O2aq < (this%o2_threshold))
+    O2aq < (this%o2_threshold)) .and. &
+    liquid_saturation > 0.95
 
   Rate = 0.d0
   
