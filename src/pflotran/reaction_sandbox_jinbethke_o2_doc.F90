@@ -233,9 +233,9 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
   PetscReal :: ln_act(reaction%ncomp)
   PetscReal :: L_water              ! L water
 
-  PetscReal :: Bicarbonate, Xim, yield, O2aq, DOC, Proton
-  PetscReal :: Rate, Rate_DOC, Rate_Bicarbonate, Rate_O2aq, Rate_Proton
-  PetscReal :: stoi_doc, stoi_bicarbonate, stoi_o2aq, stoi_proton
+  PetscReal :: Bicarbonate, Xim, yield, O2aq, DOC!, Proton
+  PetscReal :: Rate, Rate_DOC, Rate_Bicarbonate, Rate_O2aq!, Rate_Proton
+  PetscReal :: stoi_doc, stoi_bicarbonate, stoi_o2aq!, stoi_proton
   PetscReal :: m, chi, k_rmax
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fdonor, Facceptor
@@ -262,12 +262,12 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
   volume = material_auxvar%volume
   L_water = porosity*liquid_saturation*volume*1.d3
 
-  ! Rxn:    1.00 CHO- + 1.00 O2(aq) = 1.00 HCO3-  + 1.00 H+ 
+  ! Rxn:    1.00 DOC- + 4.00 O2(aq) = 2.667 HCO3-
 
   DOC = rt_auxvar%pri_molal(this%doc_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%doc_id) 
-  Proton = rt_auxvar%pri_molal(this%h_ion_id) * molality_to_molarity * &
-    rt_auxvar%pri_act_coef(this%h_ion_id) 
+  !Proton = rt_auxvar%pri_molal(this%h_ion_id) * molality_to_molarity * &
+  !  rt_auxvar%pri_act_coef(this%h_ion_id) 
   Bicarbonate = rt_auxvar%pri_molal(this%bicarbonate_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%bicarbonate_id) 
   O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
@@ -278,16 +278,16 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
   chi = this%chi
   k_rmax = this%rmax
   
-  stoi_bicarbonate = 1.d0
+  stoi_bicarbonate = 2.667d0
   stoi_doc = 1.d0
-  stoi_o2aq = 1.d0 
-  stoi_proton = 1.d0
+  stoi_o2aq = 4.d0 
+  !stoi_proton = 1.d0
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
   dG0 = this%dg0 ! kJ / mol C; set by user
   dG_ATP = 50.d0 ! kJ / mol ATP
-
-  reaction_Q = ( (Proton**stoi_proton) * (Bicarbonate**stoi_bicarbonate)) / &
+  !(Proton**stoi_proton) * 
+  reaction_Q = ( (Bicarbonate**stoi_bicarbonate)) / &
     ((DOC**stoi_doc) * (O2aq**stoi_o2aq))
 
   dGr = dG0 + RT*log(reaction_Q)
@@ -319,7 +319,7 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
     Rate = -k_rmax * Ftr * Facceptor * Fdonor * Xim * L_water  ! mol/sec
     ! species-specifc 
     Rate_DOC = Rate * stoi_doc
-    Rate_Proton = Rate * stoi_proton 
+    !Rate_Proton = Rate * stoi_proton 
     Rate_Bicarbonate = Rate * stoi_bicarbonate 
     Rate_O2aq = Rate * stoi_o2aq
     !Rate_xim = Rate * yield
@@ -328,7 +328,7 @@ subroutine JinBethkeO2aqDOCEvaluate(this, Residual,Jacobian,compute_derivative, 
     rt_auxvar%auxiliary_data(iauxiliary+1) = dGr
     rt_auxvar%auxiliary_data(iauxiliary+2) = Ftr
     
-    Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
+    !Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
     Residual(this%doc_id) = Residual(this%doc_id) - Rate_DOC
     Residual(this%o2aq_id) = Residual(this%o2aq_id) - Rate_O2aq
     Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
