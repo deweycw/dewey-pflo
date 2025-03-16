@@ -84,8 +84,8 @@ end subroutine FeMineralPrecipitationReadInput
 subroutine FeMineralPrecipitationSetup(this,reaction,option)
   !
   !
-  use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
-  use Reaction_Mineral_Aux_module, only : GetMineralIDFromName
+  use Reaction_Aux_module, only : reaction_rt_type, ReactionAuxGetPriSpecIDFromName
+  use Reaction_Mineral_Aux_module, only : ReactionMnrlGetMnrlIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_fe_mineral_precipitation_type) :: this
@@ -99,13 +99,13 @@ subroutine FeMineralPrecipitationSetup(this,reaction,option)
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Fe+++'
   this%fe3_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Fe(OH)3(s)'
   this%mineral_id = &
-    GetMineralIDFromName(word,reaction%mineral,option)
+    ReactionMnrlGetMnrlIDFromName(word,reaction%mineral,option)
 
 end subroutine FeMineralPrecipitationSetup
 ! ************************************************************************** !

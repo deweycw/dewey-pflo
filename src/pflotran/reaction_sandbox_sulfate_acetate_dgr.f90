@@ -129,8 +129,8 @@ subroutine SulfAcDGRSetup(this,reaction,option)
   !
   ! Sets up the calcite reaction with hardwired parameters
   !
-  use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
-  use Reaction_Immobile_Aux_module, only: GetImmobileSpeciesIDFromName
+  use Reaction_Aux_module, only : reaction_rt_type, ReactionAuxGetPriSpecIDFromName
+  use Reaction_Immobile_Aux_module, only: ReactionImGetSpeciesIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_sulfate_acetate_dgr_type) :: this
@@ -144,19 +144,19 @@ subroutine SulfAcDGRSetup(this,reaction,option)
   ! Aqueous species
   word = 'HS-'
   this%hs_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'SO4--'
   this%so4_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Ac-'
   this%acetate_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'HCO3-'
   this%bicarbonate_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'O2(aq)'
   this%o2aq_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
 
 
 end subroutine SulfAcDGRSetup

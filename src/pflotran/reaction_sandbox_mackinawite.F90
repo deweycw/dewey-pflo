@@ -123,8 +123,8 @@ subroutine MackinawiteSetup(this,reaction,option)
   !
   ! Sets up the calcite reaction with hardwired parameters
   !
-  use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
-  use Reaction_Mineral_Aux_module, only : GetMineralIDFromName
+  use Reaction_Aux_module, only : reaction_rt_type, ReactionAuxGetPriSpecIDFromName
+  use Reaction_Mineral_Aux_module, only : ReactionMnrlGetMnrlIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_mackinawite_type) :: this
@@ -138,22 +138,22 @@ subroutine MackinawiteSetup(this,reaction,option)
   ! Aqueous species
   word = 'Fe++'
   this%fe2_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'SO4--'
   this%sulfate_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'HS-'
   this%hs_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'H+'
   this%proton_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'O2(aq)'
   this%o2_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Mackinawite'
   this%mineral_id = &
-    GetMineralIDFromName(word,reaction%mineral,option)
+    ReactionMnrlGetMnrlIDFromName(word,reaction%mineral,option)
 
 end subroutine MackinawiteSetup
 ! ************************************************************************** !

@@ -80,8 +80,8 @@ end subroutine FeFhMineralRipeningReadInput
 subroutine FeFhMineralRipeningSetup(this,reaction,option)
   !
   !
-  use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
-  use Reaction_Mineral_Aux_module, only : GetMineralIDFromName
+  use Reaction_Aux_module, only : reaction_rt_type, ReactionAuxGetPriSpecIDFromName
+  use Reaction_Mineral_Aux_module, only : ReactionMnrlGetMnrlIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_fe_fh_mineral_ripening_type) :: this
@@ -95,13 +95,13 @@ subroutine FeFhMineralRipeningSetup(this,reaction,option)
 
   word = 'Fe++'
   this%fe2_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Fe(OH)3(s)'
   this%feoh_s_mineral_id = &
-    GetMineralIDFromName(word,reaction%mineral,option)
+    ReactionMnrlGetMnrlIDFromName(word,reaction%mineral,option)
   word = 'Ferrihydrite'
   this%fh_mineral_id = &
-    GetMineralIDFromName(word,reaction%mineral,option)
+    ReactionMnrlGetMnrlIDFromName(word,reaction%mineral,option)
 
 end subroutine FeFhMineralRipeningSetup
 ! ************************************************************************** !

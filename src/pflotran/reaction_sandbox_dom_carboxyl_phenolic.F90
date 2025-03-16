@@ -118,7 +118,7 @@ subroutine FcnDOMSetup(this,reaction,option)
   !
   ! Sets up the calcite reaction with hardwired parameters
   !
-  use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
+  use Reaction_Aux_module, only : reaction_rt_type, ReactionAuxGetPriSpecIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_functionalized_dom_type) :: this
@@ -132,16 +132,16 @@ subroutine FcnDOMSetup(this,reaction,option)
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'HDOM-'
   this%hdom_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'DOM--'
   this%dom_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'H2DOM(aq)'
   this%h2dom_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
 
 end subroutine FcnDOMSetup
 ! ************************************************************************** !

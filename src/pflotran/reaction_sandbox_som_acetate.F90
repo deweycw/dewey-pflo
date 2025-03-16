@@ -100,8 +100,8 @@ subroutine SOMAcetateSetup(this,reaction,option)
   !
   ! Sets up the calcite reaction with hardwired parameters
   !
-  use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
-  use Reaction_Mineral_Aux_module, only : GetMineralIDFromName
+  use Reaction_Aux_module, only : reaction_rt_type, ReactionAuxGetPriSpecIDFromName
+  use Reaction_Mineral_Aux_module, only : ReactionMnrlGetMnrlIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_som_acetate_type) :: this
@@ -115,13 +115,13 @@ subroutine SOMAcetateSetup(this,reaction,option)
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Ac-'
   this%acetate_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'SOM'
   this%mineral_id = &
-    GetMineralIDFromName(word,reaction%mineral,option)
+    ReactionMnrlGetMnrlIDFromName(word,reaction%mineral,option)
 
 end subroutine SOMAcetateSetup
 ! ************************************************************************** !

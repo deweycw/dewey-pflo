@@ -142,9 +142,9 @@ end subroutine JinBethkeGoethiteLactateReadInput
 subroutine JinBethkeGoethiteLactateSetup(this,reaction,option)
   !
   !
-  use Reaction_Aux_module, only : reaction_rt_type, GetPrimarySpeciesIDFromName
-  use Reaction_Mineral_Aux_module, only : GetMineralIDFromName
-  use Reaction_Immobile_Aux_module, only: GetImmobileSpeciesIDFromName
+  use Reaction_Aux_module, only : reaction_rt_type, ReactionAuxGetPriSpecIDFromName
+  use Reaction_Mineral_Aux_module, only : ReactionMnrlGetMnrlIDFromName
+  use Reaction_Immobile_Aux_module, only: ReactionImGetSpeciesIDFromName
   use Option_module
   implicit none
   class(reaction_sandbox_jinbethke_goethite_lactate_type) :: this
@@ -158,28 +158,28 @@ subroutine JinBethkeGoethiteLactateSetup(this,reaction,option)
   ! Aqueous species
   word = 'H+'
   this%h_ion_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Fe++'
   this%fe2_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Ac-'
   this%acetate_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Lactate-'
     this%lactate_id = &
-      GetPrimarySpeciesIDFromName(word,reaction,option)
+      ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'HCO3-'
   this%bicarbonate_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'O2(aq)'
   this%o2aq_id = &
-    GetPrimarySpeciesIDFromName(word,reaction,option)
+    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Goethite'
   this%mineral_id = &
-    GetMineralIDFromName(word,reaction%mineral,option)
+    ReactionMnrlGetMnrlIDFromName(word,reaction%mineral,option)
   word = 'Fim'
   this%fim_id = &
-    GetImmobileSpeciesIDFromName(word,reaction%immobile,option)
+    ReactionImGetSpeciesIDFromName(word,reaction%immobile,option)
 
 end subroutine JinBethkeGoethiteLactateSetup
 ! ************************************************************************** !
