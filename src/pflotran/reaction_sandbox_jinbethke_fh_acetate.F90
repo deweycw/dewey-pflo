@@ -16,7 +16,7 @@ module Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
     PetscInt :: acetate_id
     PetscInt :: bicarbonate_id
     PetscInt :: o2aq_id
-    PetscInt :: domaq_id
+    !PetscInt :: domaq_id
     PetscInt :: mineral_id
     PetscInt :: fim_id
     PetscReal :: rmax
@@ -27,9 +27,9 @@ module Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
     PetscReal :: m
     PetscReal :: chi
     PetscReal :: o2_threshold
-    PetscBool :: dom_check
-    PetscReal :: fe_dom_ratio
-    PetscReal :: perc_dom
+    !PetscBool :: dom_check
+    !PetscReal :: fe_dom_ratio
+    !PetscReal :: perc_dom
     
 
   contains
@@ -69,9 +69,9 @@ function JinBethkeFerrihydriteAcetateCreate()
   JinBethkeFerrihydriteAcetateCreate%chi = UNINITIALIZED_DOUBLE
   JinBethkeFerrihydriteAcetateCreate%o2_threshold = UNINITIALIZED_DOUBLE
 
-  JinBethkeFerrihydriteAcetateCreate%dom_check = PETSC_FALSE
-  JinBethkeFerrihydriteAcetateCreate%fe_dom_ratio = UNINITIALIZED_DOUBLE
-  JinBethkeFerrihydriteAcetateCreate%perc_dom = UNINITIALIZED_DOUBLE
+  !JinBethkeFerrihydriteAcetateCreate%dom_check = PETSC_FALSE
+  !JinBethkeFerrihydriteAcetateCreate%fe_dom_ratio = UNINITIALIZED_DOUBLE
+  !JinBethkeFerrihydriteAcetateCreate%perc_dom = UNINITIALIZED_DOUBLE
 
   nullify(JinBethkeFerrihydriteAcetateCreate%next)
 end function JinBethkeFerrihydriteAcetateCreate
@@ -123,30 +123,30 @@ subroutine JinBethkeFerrihydriteAcetateReadInput(this,input,option)
       case('K_PRECIPITATION')
         call InputReadDouble(input,option,this%rate_precip)
         call InputErrorMsg(input,option,word,error_string)
-      case('RELEASE_DOC')
-        call InputReadCard(input,option,word)
-        call InputErrorMsg(input,option,word,error_string)
-        call StringToUpper(word)
-        select case(word)
-          case('Y')
-            this%dom_check = PETSC_TRUE
-          case('YES')
-            this%dom_check = PETSC_TRUE
-          case('N')
-            this%dom_check = PETSC_FALSE
-          case('NO')
-            this%dom_check = PETSC_FALSE            
-          case default
-            call InputKeywordUnrecognized(input,word, &
-                         trim(error_string)//&
-                         'RELEASE_DOC',option)
-        end select
-      case('DOC_TO_FE_RATIO')
-        call InputReadDouble(input,option,this%fe_dom_ratio)
-        call InputErrorMsg(input,option,word,error_string)  
-      case('FE_OC_PERCENT')
-        call InputReadDouble(input,option,this%perc_dom)
-        call InputErrorMsg(input,option,word,error_string)  
+      !case('RELEASE_DOC')
+      !  call InputReadCard(input,option,word)
+      !  call InputErrorMsg(input,option,word,error_string)
+      !  call StringToUpper(word)
+      !  select case(word)
+      !    case('Y')
+      !      this%dom_check = PETSC_TRUE
+      !    case('YES')
+      !      this%dom_check = PETSC_TRUE
+      !    case('N')
+      !      this%dom_check = PETSC_FALSE
+      !    case('NO')
+      !      this%dom_check = PETSC_FALSE            
+      !    case default
+      !     call InputKeywordUnrecognized(input,word, &
+      !                   trim(error_string)//&
+      !                   'RELEASE_DOC',option)
+      !  end select
+      !case('DOC_TO_FE_RATIO')
+      !  call InputReadDouble(input,option,this%fe_dom_ratio)
+      !  call InputErrorMsg(input,option,word,error_string)  
+      !case('FE_OC_PERCENT')
+      !  call InputReadDouble(input,option,this%perc_dom)
+      !  call InputErrorMsg(input,option,word,error_string)  
       case default
         call InputKeywordUnrecognized(input,word,error_string,option)
     end select
@@ -198,9 +198,9 @@ subroutine JinBethkeFerrihydriteAcetateSetup(this,reaction,option)
   word = 'O2(aq)'
   this%o2aq_id = &
     ReactionAuxGetPriSpecIDFromName(word,reaction,option)
-  word = 'DOC-'
-  this%domaq_id = &
-    ReactionAuxGetPriSpecIDFromName(word,reaction,option)
+  ! word = 'DOC-'
+  ! this%domaq_id = &
+  !  ReactionAuxGetPriSpecIDFromName(word,reaction,option)
   word = 'Ferrihydrite'
   this%mineral_id = &
     ReactionMnrlGetMnrlIDFromName(word,reaction%mineral,option)
@@ -253,7 +253,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   !
   ! Author: Christian Dewey
   ! Date: 2022/10/4
-  ! Modified 2023/2/7
+  ! Modified 2025/3/16
 
   use Option_module
   use Reaction_Aux_module
@@ -284,12 +284,12 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   PetscReal :: L_water              ! L water
 
   PetscReal :: Ac, Proton, Fe2, Bicarbonate
-  PetscReal :: fim, yield, O2aq, DOMaq
+  PetscReal :: fim, yield, O2aq !, DOMaq
   PetscReal :: Rate, Rate_Ac, Rate_Proton, Rate_fh
   PetscReal :: Rate_Fe2, Rate_Bicarbonate, Rate_O2aq
   PetscReal :: stoi_ac, stoi_proton, Rate_b
   PetscReal :: stoi_fe2, stoi_bicarbonate
-  PetscReal :: stoi_dom, Rate_Dom
+  !PetscReal :: stoi_dom, Rate_Dom
   PetscReal :: k_diss, k_precip, m, chi
   PetscReal :: temp_K, RT
   PetscReal :: Ft, Ftr, Fa, Ff
@@ -347,10 +347,6 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   O2aq = rt_auxvar%pri_molal(this%o2aq_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%o2aq_id) 
 
-  DOMaq = rt_auxvar%pri_molal(this%domaq_id) * molality_to_molarity * &
-    rt_auxvar%pri_act_coef(this%domaq_id)
-
-
   fim = rt_auxvar%immobile(this%fim_id)
 
   m = this%m
@@ -361,8 +357,6 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   
   stoi_ac = 1.d0
   stoi_proton = 15.d0 !+ 2.d0  ! +2.d0 to account for H+ consumed in database formulation 
-
-  stoi_dom = this%fe_dom_ratio
 
   RT = (8.314e-3) * (global_auxvar%temp + 273.15d0)
   dG0 = (-612.0d0) ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
@@ -427,7 +421,7 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     Rate_Proton = Rate * stoi_proton 
     Rate_Fe2 = Rate * stoi_fe2 
     Rate_Bicarbonate = Rate * stoi_bicarbonate 
-    Rate_Dom = Rate * stoi_dom
+    
     !Rate_fim = Rate * yield
 
     rt_auxvar%auxiliary_data(iauxiliary) = Rate_Ac
@@ -439,13 +433,16 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_Fe2
     Residual(this%bicarbonate_id) = Residual(this%bicarbonate_id) + Rate_Bicarbonate
     
-    if (this%dom_check) then
-      
-      Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
+    !if (this%dom_check) then
+    !  DOMaq = rt_auxvar%pri_molal(this%domaq_id) * molality_to_molarity * &
+    !rt_auxvar%pri_act_coef(this%domaq_id)
+    !  stoi_dom = this%fe_dom_ratio
+    !  Rate_Dom = Rate * stoi_dom
+    !  Residual(this%domaq_id) = Residual(this%domaq_id) + Rate_Dom
 
       !rt_auxvar%eqsrfcplx_conc(ieqrxn) = rt_auxvar%eqsrfcplx_conc(ieqrxn) + Rate_Dom
 
-    endif 
+    ! endif 
 
   endif
 
