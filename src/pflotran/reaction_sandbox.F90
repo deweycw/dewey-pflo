@@ -9,6 +9,19 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_UFD_WP_class
   use Reaction_Sandbox_Example_class
   use Reaction_Sand_Equilibrate_class
+  use Reaction_Sandbox_JinBethke_Sulfate_class
+  use Reaction_Sandbox_JinBethke_Nitrate_class
+  use Reaction_Sandbox_JinBethke_Sulfate_Lactate_class
+  use Reaction_Sandbox_JinBethke_Goethite_Acetate_class
+  use Reaction_Sandbox_JinBethke_Goethite_Lactate_class
+  use Reaction_Sandbox_JinBethke_Ferrihydrite_Acetate_class
+  use Reaction_Sandbox_JinBethke_Ferrihydrite_Lactate_class
+  use Reaction_Sandbox_Fe_Mineral_Precipitation_class
+  use Reaction_Sandbox_Fe_Fh_Mineral_Ripening_class
+  use Reaction_Sandbox_Fh_Gt_Mineral_Ripening_class
+  use Reaction_Sandbox_JinBethke_O2aq_DOC_class
+  use Reaction_Sandbox_SOM_Acetate_class
+  use Reaction_Sandbox_Mackinawite_class
   use Reaction_Sandbox_Simple_class
   use Reaction_Sandbox_Chromium_class
   use Reaction_Sandbox_Cyber_class
@@ -189,6 +202,32 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => SimpleCreate()
       case('UFD-WP')
         new_sandbox => WastePackageCreate()
+      case('JINBETHKE_FERRIHYDRITE_ACETATE')
+        new_sandbox => JinBethkeFerrihydriteAcetateCreate()
+      case('JINBETHKE_FERRIHYDRITE_LACTATE')
+        new_sandbox => JinBethkeFerrihydriteLactateCreate()
+      case('JINBETHKE_GOETHITE_ACETATE')
+        new_sandbox => JinBethkeGoethiteAcetateCreate()
+      case('JINBETHKE_GOETHITE_LACTATE')
+        new_sandbox => JinBethkeGoethiteLactateCreate()
+      case('JINBETHKE_SULFATE_ACETATE')
+        new_sandbox => JinBethkeSulfateCreate()
+      case('JINBETHKE_SULFATE_LACTATE')
+        new_sandbox => JinBethkeSulfateLactateCreate()
+      case('JINBETHKE_NITRATE_ACETATE')
+        new_sandbox => JinBethkeNitrateCreate()
+      case('FE_MINERAL_PRECIPITATION')
+        new_sandbox => FeMineralPrecipitationCreate()
+      case('FE_FH_MINERAL_RIPENING')
+        new_sandbox => FeFhMineralRipeningCreate()
+      case('FH_GT_MINERAL_RIPENING')
+        new_sandbox => FhGtMineralRipeningCreate()
+      case('JINBETHKE_O2_DOC')
+        new_sandbox => JinBethkeO2aqDOCCreate()
+      case('SOM_AC_FERMENTATION')
+        new_sandbox => SOMAcetateCreate()
+      case('MACKINAWITE_DISS_PRECIP')
+        new_sandbox => MackinawiteCreate()
       case default
         call InputKeywordUnrecognized(input,word, &
                                       'CHEMISTRY,REACTION_SANDBOX',option)

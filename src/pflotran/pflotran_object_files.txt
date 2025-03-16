@@ -160,6 +160,19 @@ chem_obj = \
 	${common_src}reaction_sandbox_clm_cn.o \
 	${common_src}reaction_sandbox_example.o \
 	${common_src}reaction_sandbox_equilibrate.o \
+	${common_src}reaction_sandbox_jinbethke_nitrate.o \
+	${common_src}reaction_sandbox_jinbethke_sulfate_acetate.o \
+	${common_src}reaction_sandbox_jinbethke_sulfate_lactate.o \
+	${common_src}reaction_sandbox_jinbethke_gt_acetate.o \
+	${common_src}reaction_sandbox_jinbethke_gt_lactate.o \
+	${common_src}reaction_sandbox_jinbethke_fh_acetate.o \
+	${common_src}reaction_sandbox_jinbethke_fh_lactate.o \
+	${common_src}reaction_sandbox_fe_mineral_precipitation.o \
+	${common_src}reaction_sandbox_fe_fh_mineral_ripening.o \
+	${common_src}reaction_sandbox_fh_gt_mineral_ripening.o \
+	${common_src}reaction_sandbox_jinbethke_o2_doc.o \
+	${common_src}reaction_sandbox_som_acetate.o \
+	${common_src}reaction_sandbox_mackinawite.o \
 	${common_src}reaction_sandbox_flexbiohill.o \
 	${common_src}reaction_sandbox_gas.o \
 	${common_src}reaction_sandbox_pnnl_cyber.o \
