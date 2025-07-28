@@ -150,16 +150,6 @@ end subroutine SOMAcetateAuxiliaryPlotVariables
 subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
                            rt_auxvar,global_auxvar,material_auxvar, &
                            reaction,option)
-  !Jacobian,compute_derivative,
-  ! Evaluates SOM fermentation reaction storing residual but no Jacobian
-  !
-  ! 
-  !
-  !
-  ! Author: Christian Dewey
-  ! Date: 2022/10/4
-  ! Modified 2023/2/7
-
   use Option_module
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
@@ -167,46 +157,27 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
   use Material_Aux_module
   use Reaction_Mineral_Aux_module
   implicit none
+  
   class(reaction_sandbox_som_acetate_type) :: this
   type(option_type) :: option
   class(reaction_rt_type) :: reaction
   PetscBool :: compute_derivative
-  PetscReal :: Residual(reaction%ncomp) ! [mole / sec]
+  PetscReal :: Residual(reaction%ncomp)
   PetscReal :: Jacobian(reaction%ncomp,reaction%ncomp)
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
   type(material_auxvar_type) :: material_auxvar
+  
   PetscInt, parameter :: iphase = 1
   type(mineral_type), pointer :: mineral
-  PetscReal :: volume               ! [m^3 bulk volume]
-  PetscReal :: porosity             ! m^3 pore space / m^3 bulk
-  PetscReal :: liquid_saturation
-  PetscReal :: molality_to_molarity ! [kg water / L water]
-  PetscReal :: ln_conc(reaction%ncomp)
-  PetscReal :: ln_act(reaction%ncomp)
-  PetscReal :: L_water              ! L water
-
   PetscReal :: Ac, Proton
-  PetscReal :: Rate, Rate_Ac, Rate_Proton
-  PetscReal :: stoi_ac, stoi_proton
+  PetscReal :: Rate
   PetscReal :: threshold, rate_from_user
-
-  PetscInt :: jcomp, icomp
-  PetscInt :: ncomp, i 
-  PetscInt :: imnrl
-  PetscInt :: iauxiliary
-  mineral => reaction%mineral
-
-  iauxiliary = this%auxiliary_offset + 1
-
-  volume = material_auxvar%volume        ! den_kg [kg fluid / m^3 fluid]
-  molality_to_molarity = global_auxvar%den_kg(iphase)*1.d-3  ! kg water/L water
-
-  ln_conc = log(rt_auxvar%pri_molal)
-  ln_act = ln_conc+log(rt_auxvar%pri_act_coef)
-
+  PetscReal :: threshold_inv  ! Precomputed 1/threshold
+  PetscInt :: imnrl, iauxiliary
+  
+  ! Early exit check for mineral rate
   imnrl = this%mineral_id
-
   if (dabs(rt_auxvar%mnrl_rate(imnrl)) > 1.d-40) then
     option%io_buffer = 'For SOM_ACETATE to function correctly, &
       &the SOM RATE_CONSTANT in the default MINERAL_KINETICS block must be set &
@@ -214,78 +185,66 @@ subroutine SOMAcetateEvaluate(this, Residual,Jacobian,compute_derivative, &
     call PrintErrMsg(option)
   endif
 
-  porosity = material_auxvar%porosity
-  liquid_saturation = global_auxvar%sat(iphase)
-  volume = material_auxvar%volume
-  L_water = porosity*liquid_saturation*volume*1.d3
-
+  ! Precompute constants
+  iauxiliary = this%auxiliary_offset + 1
   rate_from_user = this%rate
   threshold = this%Ct
-  !km = this%Km
-
+  threshold_inv = 1.0d0 / threshold  ! Avoid division in rate calculation
+  
+  ! Only compute activities for species we actually use
   Ac = rt_auxvar%pri_molal(this%acetate_id) * &
-    rt_auxvar%pri_act_coef(this%acetate_id) 
+       rt_auxvar%pri_act_coef(this%acetate_id) 
   Proton = rt_auxvar%pri_molal(this%h_ion_id) * &
-    rt_auxvar%pri_act_coef(this%h_ion_id) 
+           rt_auxvar%pri_act_coef(this%h_ion_id) 
   
-  stoi_ac = 1.d0
-  stoi_proton = 1.d0
-
-  Rate = 0.d0 
-  
-  ! calculate rate if acetate concentration below threshold
-  ! negative for dissolution 
+  ! Streamlined rate calculation
+  Rate = 0.0d0 
   if (Ac < threshold) then
-    Rate = (-1.d0) * rate_from_user * ((threshold - Ac) / threshold) 
+    Rate = -rate_from_user * (threshold - Ac) * threshold_inv
   endif 
 
-  ! base rate, mol/sec/m^3 bulk
-  ! units on k: mol/sec/mol-bio
-
+  ! Store rate for auxiliary output
   rt_auxvar%auxiliary_data(iauxiliary) = Rate 
 
+  ! Combine rate calculations and use stoichiometry directly
   Rate = Rate * material_auxvar%volume ! mol/sec
-    
-  Rate_Ac = Rate * stoi_ac  
-  Rate_Proton = Rate * stoi_proton 
-
-  Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate_Proton
-  Residual(this%acetate_id) = Residual(this%acetate_id) + Rate_Ac  
+  
+  ! Since stoi_ac = stoi_proton = 1.0, we can directly use Rate
+  Residual(this%h_ion_id) = Residual(this%h_ion_id) + Rate
+  Residual(this%acetate_id) = Residual(this%acetate_id) + Rate
 
 end subroutine SOMAcetateEvaluate
 ! ************************************************************************** !
 subroutine SOMAcetateUpdateKineticState(this,rt_auxvar,global_auxvar, &
                                      material_auxvar,reaction,option)
-  !
-  ! Updates mineral volume fraction at end converged timestep based on latest
-  ! rate
-  !
   use Option_module
   use Reaction_Aux_module
   use Reactive_Transport_Aux_module
   use Global_Aux_module
   use Material_Aux_module
   implicit none
+  
   class(reaction_sandbox_som_acetate_type) :: this
   type(reactive_transport_auxvar_type) :: rt_auxvar
   type(global_auxvar_type) :: global_auxvar
   type(material_auxvar_type) :: material_auxvar
   class(reaction_rt_type) :: reaction
   type(option_type) :: option
+  
   PetscInt :: imnrl
-  PetscReal :: delta_volfrac
+  PetscReal :: delta_volfrac, current_volfrac
+  
   imnrl = this%mineral_id
-  ! rate = mol/m^3/sec
-  ! dvolfrac = m^3 mnrl/m^3 bulk = rate (mol mnrl/m^3 bulk/sec) *
-  !                                mol_vol (m^3 mnrl/mol mnrl)
-  delta_volfrac = rt_auxvar%auxiliary_data(this%auxiliary_offset+1)* &
-                  reaction%mineral%kinmnrl_molar_vol(imnrl)* &
+  
+  ! Optimization: Combined calculation and bounds checking
+  delta_volfrac = rt_auxvar%auxiliary_data(this%auxiliary_offset+1) * &
+                  reaction%mineral%kinmnrl_molar_vol(imnrl) * &
                   option%tran_dt
-  ! m^3 mnrl/m^3 bulk
-  rt_auxvar%mnrl_volfrac(imnrl) = rt_auxvar%mnrl_volfrac(imnrl) + &
-                                  delta_volfrac
-  ! zero to avoid negative volume fractions
-  if (rt_auxvar%mnrl_volfrac(imnrl) < 0.d0) &
-    rt_auxvar%mnrl_volfrac(imnrl) = 0.d0
+  
+  current_volfrac = rt_auxvar%mnrl_volfrac(imnrl) + delta_volfrac
+  
+  ! Ensure non-negative volume fraction
+  rt_auxvar%mnrl_volfrac(imnrl) = max(current_volfrac, 0.0d0)
+  
 end subroutine SOMAcetateUpdateKineticState
 end module Reaction_Sandbox_SOM_Acetate_class
