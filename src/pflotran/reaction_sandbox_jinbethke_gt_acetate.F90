@@ -96,7 +96,7 @@ subroutine JinBethkeGoethiteAcetateReadInput(this,input,option)
       case('K_DONOR')
         call InputReadDouble(input,option,this%Kdonor)
         call InputErrorMsg(input,option,word,error_string)
-      case('K_ACCEPTOR')
+      case('SURFACE_AREA_THRESHOLD')
         call InputReadDouble(input,option,this%Kacceptor)
         call InputErrorMsg(input,option,word,error_string)
       case('Y')
@@ -127,7 +127,7 @@ subroutine JinBethkeGoethiteAcetateReadInput(this,input,option)
       Uninitialized(this%m) .or. &
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
-    option%io_buffer = 'RMAX, K_PRECIPITATION, K_DONOR, K_ACCEPTOR, Y, M, CHI, and O2_THRESHOLD must be set for &
+    option%io_buffer = 'RMAX, K_PRECIPITATION, K_DONOR, SURFACE_AREA_THRESHOLD, Y, M, CHI, and O2_THRESHOLD must be set for &
       JINBETHKE_FERRIHYDRITE_ACETATE.'
     call PrintErrMsg(option)
   endif
@@ -329,9 +329,8 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
   ! Monod expressions for acetate
   Fa = Ac / (Ac + this%Kdonor)
 
-  ! Fe(III) phase accessibility factor (Monod)
-  Ff = rt_auxvar%mnrl_volfrac(imnrl) / &
-    (rt_auxvar%mnrl_volfrac(imnrl) + this%Kacceptor)
+  ! Fe(III) phase surface passivation due to Fe2++ adsorption
+  Ff = this%Kacceptor / (Fe2 + this%Kacceptor)
 
   ! Thermodynamic factor 
   Ft = 1.d0 - exp((dGr + m*dG_ATP) / (chi * RT))
