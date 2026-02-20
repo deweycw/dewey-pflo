@@ -49,6 +49,7 @@ function JinBethkeNitrateCreate()
   JinBethkeNitrateCreate%no3_id = UNINITIALIZED_INTEGER
   JinBethkeNitrateCreate%acetate_id = UNINITIALIZED_INTEGER
   JinBethkeNitrateCreate%bicarbonate_id = UNINITIALIZED_INTEGER
+  JinBethkeNitrateCreate%n2aq_id = UNINITIALIZED_INTEGER
   JinBethkeNitrateCreate%o2aq_id = UNINITIALIZED_INTEGER
   JinBethkeNitrateCreate%nim_id = UNINITIALIZED_INTEGER
 
@@ -117,9 +118,10 @@ subroutine JinBethkeNitrateReadInput(this,input,option)
       Uninitialized(this%Kacceptor) .or. &
       Uninitialized(this%m) .or. &
       Uninitialized(this%chi) .or. &
+      Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%Y)) then
-    option%io_buffer = 'RMAX, Kdonor, Kacceptor, m, chi, and Y must be set for &
-      JINBETHKE_NITRATE_ACETATE'
+    option%io_buffer = 'RMAX, Kdonor, Kacceptor, m, chi, Y, and O2_THRESHOLD &
+      &must be set for JINBETHKE_NITRATE_ACETATE'
     call PrintErrMsg(option)
   endif
 end subroutine JinBethkeNitrateReadInput
@@ -298,10 +300,15 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
   dG0 = (-816.034d0) ! kJ / mol acetate; dG0 for NO3- as electron acceptor
   dG_ATP = 50.d0 ! kJ / mol ATP
 
-  reaction_Q = ( (n2aq**stoi_n2aq) * (Bicarbonate**stoi_bicarbonate)) / &
-    ((Ac**stoi_ac) * (Proton**stoi_proton) * (no3**stoi_no3))
-
-  dGr = dG0 + RT*log(reaction_Q)
+  ! Guard against zero/negative concentrations in reaction quotient
+  if (Ac > 1.d-40 .and. Proton > 1.d-40 .and. no3 > 1.d-40 .and. &
+      n2aq > 1.d-40 .and. Bicarbonate > 1.d-40) then
+    reaction_Q = ( (n2aq**stoi_n2aq) * (Bicarbonate**stoi_bicarbonate)) / &
+      ((Ac**stoi_ac) * (Proton**stoi_proton) * (no3**stoi_no3))
+    dGr = dG0 + RT*log(reaction_Q)
+  else
+    dGr = dG0 - 100.d0  ! large negative = strongly favorable
+  endif
   
   ! Monod expressions for acetate
   Fdonor = Ac / (Ac + this%Kdonor)
@@ -324,7 +331,10 @@ subroutine JinBethkeNitrateEvaluate(this, Residual,Jacobian,compute_derivative, 
 
 
   Rate = 0.d0
-  
+  rt_auxvar%auxiliary_data(iauxiliary) = 0.d0
+  rt_auxvar%auxiliary_data(iauxiliary+1) = 0.d0
+  rt_auxvar%auxiliary_data(iauxiliary+2) = 0.d0
+
   if (calculate_rate) then
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio

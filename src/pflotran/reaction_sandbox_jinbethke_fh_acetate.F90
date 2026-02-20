@@ -362,10 +362,15 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
   dG0 = (-612.0d0) ! kJ / mol acetate; dG0 for FeIII in ferrihydrite as electron acceptor
   dG_ATP = 50.d0 ! kJ / mol ATP
 
-  reaction_Q = ( (Fe2**stoi_fe2) * (Bicarbonate**stoi_bicarbonate)) / &
-    ((Ac**stoi_ac) * (Proton**stoi_proton))
-
-  dGr = dG0 + RT*log(reaction_Q)
+  ! Guard against zero/negative concentrations in reaction quotient
+  if (Ac > 1.d-40 .and. Proton > 1.d-40 .and. &
+      Fe2 > 1.d-40 .and. Bicarbonate > 1.d-40) then
+    reaction_Q = ( (Fe2**stoi_fe2) * (Bicarbonate**stoi_bicarbonate)) / &
+      ((Ac**stoi_ac) * (Proton**stoi_proton))
+    dGr = dG0 + RT*log(reaction_Q)
+  else
+    dGr = dG0 - 100.d0  ! large negative = strongly favorable
+  endif
   
   ! Monod expressions for acetate
   Fa = Ac / (Ac + this%Kdonor)
@@ -409,7 +414,10 @@ subroutine JinBethkeFerrihydriteAcetateEvaluate(this, Residual,Jacobian,compute_
     liquid_saturation > 0.95
 
   Rate = 0.d0
-  
+  rt_auxvar%auxiliary_data(iauxiliary) = 0.d0
+  rt_auxvar%auxiliary_data(iauxiliary+1) = 0.d0
+  rt_auxvar%auxiliary_data(iauxiliary+2) = 0.d0
+
   if (calculate_dissolution) then
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio

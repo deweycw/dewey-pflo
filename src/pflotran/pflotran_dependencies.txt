@@ -3017,6 +3017,7 @@ reaction_sandbox.o : \
   reaction_sandbox_jinbethke_o2_doc.o \
   reaction_sandbox_som_acetate.o \
   reaction_sandbox_mackinawite.o \
+  reaction_sandbox_o2_consumption.o \
   reaction_sandbox_calcite.o \
   reaction_sandbox_chromium.o \
   reaction_sandbox_clm_cn.o \
@@ -3208,6 +3209,18 @@ reaction_sandbox_mackinawite.o : \
   reaction_sandbox_base.o \
   reactive_transport_aux.o \
   string.o
+reaction_sandbox_o2_consumption.o : \
+  global_aux.o \
+  input_aux.o \
+  material_aux.o \
+  option.o \
+  output_aux.o \
+  pflotran_constants.o \
+  reaction_aux.o \
+  reaction_sandbox_base.o \
+  reactive_transport_aux.o \
+  string.o \
+  variables.o
 reaction_sandbox_calcite.o : \
   global_aux.o \
   input_aux.o \

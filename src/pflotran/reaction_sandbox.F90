@@ -22,6 +22,7 @@ module Reaction_Sandbox_module
   use Reaction_Sandbox_JinBethke_O2aq_DOC_class
   use Reaction_Sandbox_SOM_Acetate_class
   use Reaction_Sandbox_Mackinawite_class
+  use Reaction_Sandbox_O2_Consumption_class
   use Reaction_Sandbox_Simple_class
   use Reaction_Sandbox_Chromium_class
   use Reaction_Sandbox_Cyber_class
@@ -228,6 +229,8 @@ subroutine RSandboxRead2(local_sandbox_list,input,option)
         new_sandbox => SOMAcetateCreate()
       case('MACKINAWITE_DISS_PRECIP')
         new_sandbox => MackinawiteCreate()
+      case('O2_CONSUMPTION')
+        new_sandbox => O2ConsumptionCreate()
       case default
         call InputKeywordUnrecognized(input,word, &
                                       'CHEMISTRY,REACTION_SANDBOX',option)

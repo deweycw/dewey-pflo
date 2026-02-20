@@ -128,7 +128,7 @@ subroutine JinBethkeGoethiteAcetateReadInput(this,input,option)
       Uninitialized(this%o2_threshold) .or. &
       Uninitialized(this%chi)) then
     option%io_buffer = 'RMAX, K_PRECIPITATION, K_DONOR, K_ACCEPTOR, Y, M, CHI, and O2_THRESHOLD must be set for &
-      JINBETHKE_FERRIHYDRITE_ACETATE.'
+      &JINBETHKE_GOETHITE_ACETATE.'
     call PrintErrMsg(option)
   endif
 end subroutine JinBethkeGoethiteAcetateReadInput
@@ -321,10 +321,15 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
   dG0 = (-464.2d0) ! kJ / mol acetate; dG0 for FeIII in goethite as electron acceptor; Kocar & Fendorf, 2009
   dG_ATP = 50.d0 ! kJ / mol ATP
 
-  reaction_Q = ( (Fe2**stoi_fe2) * (Bicarbonate**stoi_bicarbonate)) / &
-    ((Ac**stoi_ac) * (Proton**stoi_proton))
-
-  dGr = dG0 + RT*log(reaction_Q)
+  ! Guard against zero/negative concentrations in reaction quotient
+  if (Ac > 1.d-40 .and. Proton > 1.d-40 .and. &
+      Fe2 > 1.d-40 .and. Bicarbonate > 1.d-40) then
+    reaction_Q = ( (Fe2**stoi_fe2) * (Bicarbonate**stoi_bicarbonate)) / &
+      ((Ac**stoi_ac) * (Proton**stoi_proton))
+    dGr = dG0 + RT*log(reaction_Q)
+  else
+    dGr = dG0 - 100.d0  ! large negative = strongly favorable
+  endif
   
   ! Monod expressions for acetate
   Fa = Ac / (Ac + this%Kdonor)
@@ -368,7 +373,10 @@ subroutine JinBethkeGoethiteAcetateEvaluate(this, Residual,Jacobian,compute_deri
     liquid_saturation > 0.95
 
   Rate = 0.d0
-  
+  rt_auxvar%auxiliary_data(iauxiliary) = 0.d0
+  rt_auxvar%auxiliary_data(iauxiliary+1) = 0.d0
+  rt_auxvar%auxiliary_data(iauxiliary+2) = 0.d0
+
   if (calculate_dissolution) then
     ! base rate, mol/sec/m^3 bulk
     ! units on k: mol/sec/mol-bio

@@ -173,6 +173,7 @@ chem_obj = \
 	${common_src}reaction_sandbox_jinbethke_o2_doc.o \
 	${common_src}reaction_sandbox_som_acetate.o \
 	${common_src}reaction_sandbox_mackinawite.o \
+	${common_src}reaction_sandbox_o2_consumption.o \
 	${common_src}reaction_sandbox_flexbiohill.o \
 	${common_src}reaction_sandbox_gas.o \
 	${common_src}reaction_sandbox_pnnl_cyber.o \
