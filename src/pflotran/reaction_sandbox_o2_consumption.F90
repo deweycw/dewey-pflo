@@ -21,11 +21,9 @@ module Reaction_Sandbox_O2_Consumption_class
 !   HS-  + 2.0  O2(aq)       -> SO4-- + H+         (HS- oxidation)
 !
 ! Design:
-!   - Uses smooth sigmoid O2 activation (not Monod on O2) to avoid
-!     stiff Jacobian entries near the half-saturation concentration
+!   - Smooth sigmoid O2 activation: f_o2 = O2^2/(O2^2 + K^2)
 !   - Substrate limitation via Monod for SOC, Fe2+, and HS- only
-!   - All three reactions evaluated together with coordinated O2 cap
-!     to prevent over-consumption and Newton oscillation
+!   - Analytical Jacobian provided for Newton convergence
 !   - Hard cutoff on f_o2 at 1e-20 to avoid denormalized float issues
 !
 ! Input block:
@@ -38,7 +36,6 @@ module Reaction_Sandbox_O2_Consumption_class
 !       HS_VMAX           2.d-8    ! mol/L-water/s
 !       HS_HALF_SAT       1.d-5    ! mol/L HS-
 !       O2_THRESHOLD      1.d-5    ! mol/L - sigmoid midpoint
-!       O2_SAFETY_FACTOR  0.8d0    ! max fraction of O2 consumed per dt
 !     /
 !   /
 !
@@ -70,7 +67,6 @@ module Reaction_Sandbox_O2_Consumption_class
     PetscReal :: hs_half_sat
     ! Shared O2 parameters
     PetscReal :: o2_threshold
-    PetscReal :: o2_safety_factor
 
   contains
     procedure, public :: ReadInput => O2ConsumptionReadInput
@@ -109,7 +105,6 @@ function O2ConsumptionCreate()
   O2ConsumptionCreate%hs_vmax = UNINITIALIZED_DOUBLE
   O2ConsumptionCreate%hs_half_sat = UNINITIALIZED_DOUBLE
   O2ConsumptionCreate%o2_threshold = UNINITIALIZED_DOUBLE
-  O2ConsumptionCreate%o2_safety_factor = 0.8d0  ! default
 
   nullify(O2ConsumptionCreate%next)
 end function O2ConsumptionCreate
@@ -158,9 +153,6 @@ subroutine O2ConsumptionReadInput(this,input,option)
         call InputErrorMsg(input,option,word,error_string)
       case('O2_THRESHOLD')
         call InputReadDouble(input,option,this%o2_threshold)
-        call InputErrorMsg(input,option,word,error_string)
-      case('O2_SAFETY_FACTOR')
-        call InputReadDouble(input,option,this%o2_safety_factor)
         call InputErrorMsg(input,option,word,error_string)
       case default
         call InputKeywordUnrecognized(input,word,error_string,option)
@@ -266,16 +258,11 @@ subroutine O2ConsumptionEvaluate(this,Residual,Jacobian,compute_derivative, &
                              rt_auxvar,global_auxvar,material_auxvar, &
                              reaction,option)
   !
-  ! Evaluates combined O2-consuming reactions
+  ! Evaluates combined O2-consuming reactions with analytical Jacobian
   !
   ! SOC(aq) + O2(aq) + H2O -> HCO3- + H+          (aerobic respiration)
   ! Fe2+ + 0.25 O2(aq) + H+  -> Fe3+ + 0.5 H2O    (Fe2+ oxidation)
   ! HS-  + 2.0  O2(aq)        -> SO4-- + H+         (HS- oxidation)
-  !
-  ! Key stability features:
-  !   1. Smooth sigmoid for O2 activation with hard cutoff at 1e-20
-  !   2. Coordinated O2 consumption cap across all three reactions
-  !   3. No Monod on O2 (avoids stiff dRate/d[O2] near K)
   !
   ! Author: Christian Dewey
   ! Date: 2026/02/19
@@ -306,14 +293,18 @@ subroutine O2ConsumptionEvaluate(this,Residual,Jacobian,compute_derivative, &
   PetscReal :: Fe2, O2aq, HS, SOC
   PetscReal :: f_o2, f_fe, f_hs, f_soc
   PetscReal :: rate_aero, rate_fe, rate_hs
-  PetscReal :: total_o2_demand, o2_available, scale
-  PetscReal :: threshold_sq
+  PetscReal :: threshold_sq, o2_sq, denom_o2
 
   PetscReal :: Rate_aero_mol, Rate_fe_mol, Rate_hs_mol
   PetscReal :: stoi_aero_o2, stoi_fe_o2, stoi_hs_o2
 
-  ! Hard cutoff for sigmoid activation — below this, treat as zero
-  ! to avoid denormalized float arithmetic
+  ! Jacobian variables
+  PetscReal :: df_o2_dO2, df_soc_dSOC, df_fe_dFe2, df_hs_dHS
+  PetscReal :: dr_aero_dm_o2, dr_aero_dm_soc
+  PetscReal :: dr_fe_dm_o2, dr_fe_dm_fe2
+  PetscReal :: dr_hs_dm_o2, dr_hs_dm_hs
+  PetscReal :: cf_o2, cf_fe2, cf_soc, cf_hs
+
   PetscReal, parameter :: F_O2_CUTOFF = 1.d-20
 
   ! Stoichiometric coefficients for O2 consumption
@@ -327,7 +318,7 @@ subroutine O2ConsumptionEvaluate(this,Residual,Jacobian,compute_derivative, &
   liquid_saturation = global_auxvar%sat(iphase)
   L_water = porosity * liquid_saturation * volume * 1.d3
 
-  ! Get species concentrations (molarity)
+  ! Get species concentrations (activity in molarity)
   Fe2 = rt_auxvar%pri_molal(this%fe2_id) * molality_to_molarity * &
     rt_auxvar%pri_act_coef(this%fe2_id)
   O2aq = rt_auxvar%pri_molal(this%o2_id) * molality_to_molarity * &
@@ -346,18 +337,16 @@ subroutine O2ConsumptionEvaluate(this,Residual,Jacobian,compute_derivative, &
   endif
 
   ! ---- Smooth sigmoid O2 activation ----
-  ! f_o2 = O2^2 / (O2^2 + threshold^2)
-  ! Gives: ~0 when O2 << threshold, ~1 when O2 >> threshold
-  ! Continuous first derivative (unlike hard if/else)
-  ! Avoids Monod-style dRate/d[O2] stiffness
+  ! f_o2 = O2^2 / (O2^2 + K^2)
   threshold_sq = this%o2_threshold * this%o2_threshold
   if (O2aq > 0.d0) then
-    f_o2 = (O2aq * O2aq) / (O2aq * O2aq + threshold_sq)
+    o2_sq = O2aq * O2aq
+    denom_o2 = o2_sq + threshold_sq
+    f_o2 = o2_sq / denom_o2
   else
     f_o2 = 0.d0
   endif
 
-  ! Hard cutoff: skip all reactions if f_o2 is negligibly small
   if (f_o2 < F_O2_CUTOFF) then
     rt_auxvar%auxiliary_data(this%auxiliary_offset+1) = 0.d0
     rt_auxvar%auxiliary_data(this%auxiliary_offset+2) = 0.d0
@@ -365,7 +354,7 @@ subroutine O2ConsumptionEvaluate(this,Residual,Jacobian,compute_derivative, &
     return
   endif
 
-  ! ---- Substrate Monod terms (SOC, Fe2+, HS- only — NOT O2) ----
+  ! ---- Substrate Monod terms ----
   if (SOC > 0.d0) then
     f_soc = SOC / (SOC + this%aero_half_sat)
   else
@@ -384,30 +373,12 @@ subroutine O2ConsumptionEvaluate(this,Residual,Jacobian,compute_derivative, &
     f_hs = 0.d0
   endif
 
-  ! ---- Unconstrained rates (mol/L-water/s) ----
+  ! ---- Rates (mol/L-water/s) ----
   rate_aero = this%aero_vmax * f_o2 * f_soc
   rate_fe = this%fe_vmax * f_o2 * f_fe
   rate_hs = this%hs_vmax * f_o2 * f_hs
 
-  ! ---- Coordinated O2 consumption cap ----
-  ! Total O2 demand from all three reactions
-  ! Prevent combined demand from exceeding a safe fraction of available O2
-  total_o2_demand = rate_aero * stoi_aero_o2 + &
-                    rate_fe * stoi_fe_o2 + &
-                    rate_hs * stoi_hs_o2
-
-  if (total_o2_demand > 0.d0 .and. option%tran_dt > 0.d0) then
-    ! mol O2 / L available over this timestep, converted to rate
-    o2_available = O2aq / option%tran_dt
-    if (total_o2_demand > this%o2_safety_factor * o2_available) then
-      scale = this%o2_safety_factor * o2_available / total_o2_demand
-      rate_aero = rate_aero * scale
-      rate_fe = rate_fe * scale
-      rate_hs = rate_hs * scale
-    endif
-  endif
-
-  ! ---- Convert to mol/sec (multiply by L_water) ----
+  ! ---- Convert to mol/sec ----
   Rate_aero_mol = rate_aero * L_water
   Rate_fe_mol = rate_fe * L_water
   Rate_hs_mol = rate_hs * L_water
@@ -417,33 +388,149 @@ subroutine O2ConsumptionEvaluate(this,Residual,Jacobian,compute_derivative, &
   rt_auxvar%auxiliary_data(this%auxiliary_offset+2) = Rate_fe_mol
   rt_auxvar%auxiliary_data(this%auxiliary_offset+3) = Rate_hs_mol
 
-  ! ---- Aerobic respiration residuals ----
-  ! SOC(aq) + O2(aq) + H2O -> HCO3- + H+
-  ! Convention: += for consumed species, -= for produced species (positive rates)
-  if (Rate_aero_mol > 0.d0) then
-    Residual(this%soc_id) = Residual(this%soc_id) + Rate_aero_mol
-    Residual(this%o2_id) = Residual(this%o2_id) + Rate_aero_mol * stoi_aero_o2
-    Residual(this%hco3_id) = Residual(this%hco3_id) - Rate_aero_mol
-    Residual(this%h_id) = Residual(this%h_id) - Rate_aero_mol
-  endif
+  ! ---- Residuals ----
+  ! Convention: += consumed, -= produced (positive rates)
 
-  ! ---- Fe2+ oxidation residuals ----
-  ! Fe2+ + 0.25 O2(aq) + H+ -> Fe3+ + 0.5 H2O
-  if (Rate_fe_mol > 0.d0) then
-    Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_fe_mol
-    Residual(this%fe3_id) = Residual(this%fe3_id) - Rate_fe_mol
-    Residual(this%o2_id) = Residual(this%o2_id) + Rate_fe_mol * stoi_fe_o2
-    Residual(this%h_id) = Residual(this%h_id) + Rate_fe_mol
-  endif
+  ! Aerobic: SOC(aq) + O2(aq) + H2O -> HCO3- + H+
+  Residual(this%soc_id) = Residual(this%soc_id) + Rate_aero_mol
+  Residual(this%o2_id) = Residual(this%o2_id) + Rate_aero_mol * stoi_aero_o2
+  Residual(this%hco3_id) = Residual(this%hco3_id) - Rate_aero_mol
+  Residual(this%h_id) = Residual(this%h_id) - Rate_aero_mol
 
-  ! ---- HS- oxidation residuals ----
-  ! HS- + 2.0 O2(aq) -> SO4-- + H+
-  if (Rate_hs_mol > 0.d0) then
-    Residual(this%hs_id) = Residual(this%hs_id) + Rate_hs_mol
-    Residual(this%so4_id) = Residual(this%so4_id) - Rate_hs_mol
-    Residual(this%o2_id) = Residual(this%o2_id) + Rate_hs_mol * stoi_hs_o2
-    Residual(this%h_id) = Residual(this%h_id) - Rate_hs_mol
-  endif
+  ! Fe2+ oxidation: Fe2+ + 0.25 O2 + H+ -> Fe3+ + 0.5 H2O
+  Residual(this%fe2_id) = Residual(this%fe2_id) + Rate_fe_mol
+  Residual(this%fe3_id) = Residual(this%fe3_id) - Rate_fe_mol
+  Residual(this%o2_id) = Residual(this%o2_id) + Rate_fe_mol * stoi_fe_o2
+  Residual(this%h_id) = Residual(this%h_id) + Rate_fe_mol
+
+  ! HS- oxidation: HS- + 2 O2 -> SO4-- + H+
+  Residual(this%hs_id) = Residual(this%hs_id) + Rate_hs_mol
+  Residual(this%so4_id) = Residual(this%so4_id) - Rate_hs_mol
+  Residual(this%o2_id) = Residual(this%o2_id) + Rate_hs_mol * stoi_hs_o2
+  Residual(this%h_id) = Residual(this%h_id) - Rate_hs_mol
+
+  ! ---- Analytical Jacobian ----
+  if (compute_derivative) then
+
+    ! d(conc_j)/d(pri_molal_j) conversion factors
+    cf_o2 = molality_to_molarity * rt_auxvar%pri_act_coef(this%o2_id)
+    cf_soc = molality_to_molarity * rt_auxvar%pri_act_coef(this%soc_id)
+    cf_fe2 = molality_to_molarity * rt_auxvar%pri_act_coef(this%fe2_id)
+    cf_hs = molality_to_molarity * rt_auxvar%pri_act_coef(this%hs_id)
+
+    ! df_o2/dO2 = 2*O2*K^2 / (O2^2 + K^2)^2
+    if (O2aq > 0.d0) then
+      df_o2_dO2 = 2.d0 * O2aq * threshold_sq / (denom_o2 * denom_o2)
+    else
+      df_o2_dO2 = 0.d0
+    endif
+
+    ! df_soc/dSOC = K_soc / (SOC + K_soc)^2
+    if (SOC > 0.d0) then
+      df_soc_dSOC = this%aero_half_sat / &
+        ((SOC + this%aero_half_sat) * (SOC + this%aero_half_sat))
+    else
+      df_soc_dSOC = 0.d0
+    endif
+
+    ! df_fe/dFe2 = K_fe / (Fe2 + K_fe)^2
+    if (Fe2 > 0.d0) then
+      df_fe_dFe2 = this%fe_half_sat / &
+        ((Fe2 + this%fe_half_sat) * (Fe2 + this%fe_half_sat))
+    else
+      df_fe_dFe2 = 0.d0
+    endif
+
+    ! df_hs/dHS = K_hs / (HS + K_hs)^2
+    if (HS > 0.d0) then
+      df_hs_dHS = this%hs_half_sat / &
+        ((HS + this%hs_half_sat) * (HS + this%hs_half_sat))
+    else
+      df_hs_dHS = 0.d0
+    endif
+
+    ! Rate derivatives w.r.t. pri_molal (mol/L/s per molal)
+    ! d(rate)/d(molal_j) = d(rate)/d(conc_j) * cf_j
+
+    ! Aerobic: rate_aero = aero_vmax * f_o2 * f_soc
+    dr_aero_dm_o2 = this%aero_vmax * df_o2_dO2 * f_soc * cf_o2
+    dr_aero_dm_soc = this%aero_vmax * f_o2 * df_soc_dSOC * cf_soc
+
+    ! Fe2+: rate_fe = fe_vmax * f_o2 * f_fe
+    dr_fe_dm_o2 = this%fe_vmax * df_o2_dO2 * f_fe * cf_o2
+    dr_fe_dm_fe2 = this%fe_vmax * f_o2 * df_fe_dFe2 * cf_fe2
+
+    ! HS-: rate_hs = hs_vmax * f_o2 * f_hs
+    dr_hs_dm_o2 = this%hs_vmax * df_o2_dO2 * f_hs * cf_o2
+    dr_hs_dm_hs = this%hs_vmax * f_o2 * df_hs_dHS * cf_hs
+
+    ! ---- Aerobic respiration Jacobian ----
+    ! R(soc) += rate_aero * L_water
+    Jacobian(this%soc_id,this%o2_id) = &
+      Jacobian(this%soc_id,this%o2_id) + dr_aero_dm_o2 * L_water
+    Jacobian(this%soc_id,this%soc_id) = &
+      Jacobian(this%soc_id,this%soc_id) + dr_aero_dm_soc * L_water
+    ! R(o2) += rate_aero * stoi_aero_o2 * L_water
+    Jacobian(this%o2_id,this%o2_id) = &
+      Jacobian(this%o2_id,this%o2_id) + dr_aero_dm_o2 * stoi_aero_o2 * L_water
+    Jacobian(this%o2_id,this%soc_id) = &
+      Jacobian(this%o2_id,this%soc_id) + dr_aero_dm_soc * stoi_aero_o2 * L_water
+    ! R(hco3) -= rate_aero * L_water
+    Jacobian(this%hco3_id,this%o2_id) = &
+      Jacobian(this%hco3_id,this%o2_id) - dr_aero_dm_o2 * L_water
+    Jacobian(this%hco3_id,this%soc_id) = &
+      Jacobian(this%hco3_id,this%soc_id) - dr_aero_dm_soc * L_water
+    ! R(h) -= rate_aero * L_water
+    Jacobian(this%h_id,this%o2_id) = &
+      Jacobian(this%h_id,this%o2_id) - dr_aero_dm_o2 * L_water
+    Jacobian(this%h_id,this%soc_id) = &
+      Jacobian(this%h_id,this%soc_id) - dr_aero_dm_soc * L_water
+
+    ! ---- Fe2+ oxidation Jacobian ----
+    ! R(fe2) += rate_fe * L_water
+    Jacobian(this%fe2_id,this%o2_id) = &
+      Jacobian(this%fe2_id,this%o2_id) + dr_fe_dm_o2 * L_water
+    Jacobian(this%fe2_id,this%fe2_id) = &
+      Jacobian(this%fe2_id,this%fe2_id) + dr_fe_dm_fe2 * L_water
+    ! R(fe3) -= rate_fe * L_water
+    Jacobian(this%fe3_id,this%o2_id) = &
+      Jacobian(this%fe3_id,this%o2_id) - dr_fe_dm_o2 * L_water
+    Jacobian(this%fe3_id,this%fe2_id) = &
+      Jacobian(this%fe3_id,this%fe2_id) - dr_fe_dm_fe2 * L_water
+    ! R(o2) += rate_fe * stoi_fe_o2 * L_water
+    Jacobian(this%o2_id,this%o2_id) = &
+      Jacobian(this%o2_id,this%o2_id) + dr_fe_dm_o2 * stoi_fe_o2 * L_water
+    Jacobian(this%o2_id,this%fe2_id) = &
+      Jacobian(this%o2_id,this%fe2_id) + dr_fe_dm_fe2 * stoi_fe_o2 * L_water
+    ! R(h) += rate_fe * L_water
+    Jacobian(this%h_id,this%o2_id) = &
+      Jacobian(this%h_id,this%o2_id) + dr_fe_dm_o2 * L_water
+    Jacobian(this%h_id,this%fe2_id) = &
+      Jacobian(this%h_id,this%fe2_id) + dr_fe_dm_fe2 * L_water
+
+    ! ---- HS- oxidation Jacobian ----
+    ! R(hs) += rate_hs * L_water
+    Jacobian(this%hs_id,this%o2_id) = &
+      Jacobian(this%hs_id,this%o2_id) + dr_hs_dm_o2 * L_water
+    Jacobian(this%hs_id,this%hs_id) = &
+      Jacobian(this%hs_id,this%hs_id) + dr_hs_dm_hs * L_water
+    ! R(so4) -= rate_hs * L_water
+    Jacobian(this%so4_id,this%o2_id) = &
+      Jacobian(this%so4_id,this%o2_id) - dr_hs_dm_o2 * L_water
+    Jacobian(this%so4_id,this%hs_id) = &
+      Jacobian(this%so4_id,this%hs_id) - dr_hs_dm_hs * L_water
+    ! R(o2) += rate_hs * stoi_hs_o2 * L_water
+    Jacobian(this%o2_id,this%o2_id) = &
+      Jacobian(this%o2_id,this%o2_id) + dr_hs_dm_o2 * stoi_hs_o2 * L_water
+    Jacobian(this%o2_id,this%hs_id) = &
+      Jacobian(this%o2_id,this%hs_id) + dr_hs_dm_hs * stoi_hs_o2 * L_water
+    ! R(h) -= rate_hs * L_water
+    Jacobian(this%h_id,this%o2_id) = &
+      Jacobian(this%h_id,this%o2_id) - dr_hs_dm_o2 * L_water
+    Jacobian(this%h_id,this%hs_id) = &
+      Jacobian(this%h_id,this%hs_id) - dr_hs_dm_hs * L_water
+
+  endif ! compute_derivative
 
 end subroutine O2ConsumptionEvaluate
 
